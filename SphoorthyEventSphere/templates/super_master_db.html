@@ -1,0 +1,252 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --sidebar-width: 280px;
+    }
+    
+    .dashboard-layout {
+        display: flex;
+        min-height: calc(100vh - 80px);
+        background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent),
+                    radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent);
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+        width: var(--sidebar-width);
+        background: rgba(10, 10, 20, 0.4);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 2.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 80px);
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        border: 1px solid transparent;
+        cursor: pointer;
+        margin-bottom: 0.25rem;
+    }
+
+    .nav-item i {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+    }
+
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .nav-item.active {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--primary);
+        border-color: rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Content Area */
+    .main-content {
+        flex: 1;
+        padding: 2.5rem;
+    }
+
+    /* Professional Mobile Responsiveness */
+    @media (max-width: 1024px) {
+        .dashboard-layout { flex-direction: column; }
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            top: 0;
+            padding: 1rem;
+            flex-direction: row;
+            overflow-x: auto;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .nav-item { white-space: nowrap; margin-bottom: 0; }
+        .main-content { padding: 1.5rem 1rem; }
+    }
+
+    .glass {
+        position: relative;
+        overflow-x: auto !important;
+    }
+    .glass::-webkit-scrollbar { height: 6px; }
+    .glass::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+    }
+</style>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div style="margin-bottom: 2rem;">
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Main Menu</p>
+            <a href="/admin" class="nav-item">
+                <i class="fas fa-tools"></i>
+                <span>Clubs Setup & Config</span>
+            </a>
+            <a href="/super/approvals" class="nav-item">
+                <i class="fas fa-check-circle"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="/super/master" class="nav-item active">
+                <i class="fas fa-database"></i>
+                <span>Master DB</span>
+            </a>
+        </div>
+
+        <div>
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Governance</p>
+            <a href="/super/registry" class="nav-item">
+                <i class="fas fa-folder-open"></i>
+                <span>Institutional Registry</span>
+            </a>
+            <a href="/super/leaderboard" class="nav-item">
+                <i class="fas fa-trophy"></i>
+                <span>Global Leaderboard</span>
+            </a>
+            <a href="/admin/contacts" class="nav-item">
+                <i class="fas fa-address-book"></i>
+                <span>Contacts</span>
+            </a>
+            <a href="/super/settings" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Global Settings</span>
+            </a>
+            <div class="nav-item" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+                <span>Refresh</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Institutional Master DB</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="studentSearch" placeholder="Search roll/name..." style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem 1rem; color: white;">
+                <button onclick="fetchStudents(1)" class="btn btn-outline" style="border-radius: 10px;"><i class="fas fa-search"></i></button>
+                <button class="btn btn-primary" onclick="document.getElementById('studentCsvFile').click()"><i class="fas fa-upload"></i> Global Import</button>
+            </div>
+        </div>
+
+        <form id="uploadStudentsForm" enctype="multipart/form-data" style="display: none;">
+            <input type="file" id="studentCsvFile" name="file" accept=".csv" onchange="document.getElementById('uploadStudentsForm').requestSubmit()">
+        </form>
+
+        <div class="glass" style="border-radius: 24px; padding: 1rem;">
+            <table>
+                <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <th>Roll Number</th>
+                        <th>Student Identity</th>
+                        <th>Dept / Year</th>
+                        <th>Contact</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    <!-- Loaded via JS -->
+                </tbody>
+            </table>
+            <div id="studentPagination" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 2rem; padding: 1rem;">
+                <!-- Pagination -->
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.getElementById('uploadStudentsForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const fileInp = document.getElementById('studentCsvFile');
+        if (!fileInp.files.length) return;
+
+        const formData = new FormData();
+        formData.append('file', fileInp.files[0]);
+
+        try {
+            const res = await fetch('/api/students/upload', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: formData
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                alert(result.message);
+                fileInp.value = "";
+                fetchStudents(1);
+            } else {
+                alert("Error: " + result.message);
+            }
+        } catch (err) {
+            alert("Error uploading file.");
+        }
+    };
+
+    // Student Pagination Logic
+    async function fetchStudents(page = 1) {
+        const search = document.getElementById('studentSearch').value;
+        const res = await fetch(`/api/students/list?page=${page}&search=${search}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = data.students.map(s => `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.02);">
+                    <td style="padding: 1.25rem; font-weight:700;">${s.roll_number}</td>
+                    <td>
+                        <div style="font-weight: 600;">${s.name}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.85rem;">${s.department} &bull; Year ${s.year}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${s.email || '—'}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${s.phone || ''}</div>
+                    </td>
+                </tr>
+            `).join('');
+
+            const pagination = document.getElementById('studentPagination');
+            let pagHtml = '';
+            if(data.pages > 1) {
+                const startPage = Math.max(1, data.current_page - 2);
+                const endPage = Math.min(data.pages, data.current_page + 2);
+                
+                if(data.current_page > 1) pagHtml += `<button onclick="fetchStudents(${data.current_page-1})" class="btn btn-outline" style="padding:0.2rem 0.6rem;">Prev</button>`;
+                
+                for(let i=startPage; i<=endPage; i++) {
+                    pagHtml += `<button onclick="fetchStudents(${i})" class="btn ${i === data.current_page ? 'btn-primary' : 'btn-outline'}" style="padding:0.2rem 0.6rem;">${i}</button>`;
+                }
+                
+                if(data.current_page < data.pages) pagHtml += `<button onclick="fetchStudents(${data.current_page+1})" class="btn btn-outline" style="padding:0.2rem 0.6rem;">Next</button>`;
+            }
+            pagination.innerHTML = pagHtml;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchStudents(1);
+    });
+</script>
+{% endblock %}

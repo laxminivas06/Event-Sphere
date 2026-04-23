@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Sphoorthy EventSphere - Sphoorthy Engineering College</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .nav-branding {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+        }
+
+        .nav-logo-img {
+            max-width: 150px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-subtitle {
+            font-size: 0.7rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 700;
+        }
+
+        @media (max-width: 600px) {
+            .nav-logo-img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .brand-title {
+                font-size: 1.1rem;
+            }
+
+            .brand-subtitle {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="nav-branding">
+            <img src="{{ url_for('static', filename='uploads/logos/college_logo.png') }}" alt="Sphoorthy Logo"
+                class="nav-logo-img">
+            <div class="brand-text">
+                <span class="brand-title">Sphoorthy EventSphere</span>
+                <span class="brand-subtitle">Sphoorthy Engineering College</span>
+            </div>
+        </a>
+
+        <button class="mobile-toggle" onclick="toggleMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="nav-links" id="navLinks">
+            <a href="/">Events</a>
+            {% if user %}
+            {% if user.role == 'student' %}
+            <a href="/student/profile">My Profile</a>
+            <a href="/student/history">My History</a>
+            {% endif %}
+            {% if user.role == 'super_admin' %}
+            <a href="/admin">Club Dash</a>
+            <a href="/em">Event Dash</a>
+            {% elif user.role in ['event_manager', 'event_admin'] %}
+            <a href="/em/dashboard">Dashboard</a>
+            <a href="/em/scanner">QR Scanner</a>
+            {% elif user.role and user.role.endswith('_admin') %}
+            <a href="/admin">Dashboard</a>
+            <a href="/scanner">Scanner</a>
+            {% endif %}
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Hi, {{ user.name }}</span>
+            <a href="/api/logout" class="btn btn-outline" style="padding: 0.5rem 1rem;">Logout</a>
+            {% else %}
+            <a href="/login" class="btn btn-primary">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('active');
+            const icon = document.querySelector('.mobile-toggle i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        }
+    </script>
+
+    {% block content %}{% endblock %}
+
+    <footer
+        style="padding: 5rem 5%; text-align: center; border-top: 1px solid var(--glass-border); margin-top: 5rem; background: rgba(0,0,0,0.2);">
+        <div class="container">
+            <h3 style="color: #fff; margin-bottom: 0.5rem; font-size: 1.4rem;">Sphoorthy EventSphere</h3>
+            <p
+                style="color: var(--primary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.15rem; margin-bottom: 2rem; font-weight: 600;">
+                Centralized Club & Event Management System</p>
+
+            <div style="width: 60px; height: 2px; background: var(--primary); margin: 0 auto 2rem; opacity: 0.5;"></div>
+
+            <p style="color: var(--text-muted); font-size: 0.9rem;">&copy; <span id="currentYear"></span> Sphoorthy
+                Engineering College | All Rights Reserved</p>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

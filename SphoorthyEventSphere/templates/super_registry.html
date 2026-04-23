@@ -1,0 +1,363 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .registry-layout {
+        display: flex;
+        min-height: calc(100vh - 80px);
+    }
+    .registry-sidebar {
+        width: 280px;
+        background: rgba(10, 10, 20, 0.4);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 2.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 80px);
+        flex-shrink: 0;
+    }
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        border: 1px solid transparent;
+        cursor: pointer;
+        margin-bottom: 0.25rem;
+    }
+    .nav-item i {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+    }
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+    .nav-item.active {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--primary);
+        border-color: rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+    }
+    .reg-nav-pill {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.6rem 1.2rem; border-radius: 20px;
+        color: var(--text-muted); background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.05);
+        cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-weight: 600;
+    }
+    .reg-nav-pill:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .reg-nav-pill.active {
+        background: var(--primary); color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+    }
+    .reg-main { flex: 1; padding: 2.5rem; min-width: 0; }
+    .club-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.75rem; }
+    .club-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        text-decoration: none; color: inherit;
+        display: flex; flex-direction: column;
+    }
+    .club-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(99,102,241,0.4);
+        box-shadow: 0 12px 40px rgba(99,102,241,0.15);
+    }
+    .club-card-banner {
+        height: 140px; position: relative;
+        background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15));
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+    }
+    .club-banner-img {
+        width: 100%; height: 100%; object-fit: cover; opacity: 0.7;
+    }
+    .club-logo-badge {
+        position: absolute; bottom: -22px; left: 1.25rem;
+        width: 56px; height: 56px; border-radius: 14px;
+        border: 3px solid rgba(15,23,42,1);
+        object-fit: cover; background: rgba(15,23,42,0.9);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .club-card-body { padding: 2rem 1.25rem 1.25rem; flex: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+    .club-card-actions { padding: 0 1.25rem 1.25rem; display: flex; gap: 0.6rem; }
+    .stat-pill {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px; padding: 0.25rem 0.65rem; font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    @media (max-width: 1024px) {
+        .registry-layout { flex-direction: column; }
+        .registry-sidebar { width: 100%; height: auto; position: relative; top: 0; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1rem; }
+        .reg-nav-item { white-space: nowrap; }
+        .reg-main { padding: 1.5rem 1rem; }
+    }
+</style>
+
+<div class="registry-layout">
+    <!-- Sidebar -->
+    <aside class="registry-sidebar">
+        <div style="margin-bottom: 2rem;">
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Main Menu</p>
+            <a href="/admin" class="nav-item">
+                <i class="fas fa-tools"></i>
+                <span>Clubs Setup & Config</span>
+            </a>
+            <a href="/super/approvals" class="nav-item">
+                <i class="fas fa-check-circle"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="/super/master" class="nav-item">
+                <i class="fas fa-database"></i>
+                <span>Master DB</span>
+            </a>
+        </div>
+
+        <div>
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Governance</p>
+            <a href="/super/registry" class="nav-item active">
+                <i class="fas fa-folder-open"></i>
+                <span>Institutional Registry</span>
+            </a>
+            <a href="/admin/contacts" class="nav-item">
+                <i class="fas fa-address-book"></i>
+                <span>Contacts</span>
+            </a>
+            <a href="/super/settings" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Global Settings</span>
+            </a>
+            <div class="nav-item" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+                <span>Refresh</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="reg-main">
+        <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.4rem;">
+                    Institutional <span style="color:var(--primary)">Event Registry</span>
+                </h1>
+                <p style="color:var(--text-muted); margin: 0;">
+                    All clubs, events, and elections — institutional overview for Academic Year 
+                    <span style="color: var(--primary); font-weight: 700; background: rgba(139, 92, 246, 0.1); padding: 0.2rem 0.6rem; border-radius: 8px;">20{{ current_year_str }}</span>
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 25px; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="reg-nav-pill active" onclick="showSection('clubs', this)">
+                    <i class="fas fa-shield-alt"></i> All Clubs
+                </div>
+                <div class="reg-nav-pill" onclick="showSection('events', this)">
+                    <i class="fas fa-calendar-alt"></i> Event Registry
+                </div>
+                <div class="reg-nav-pill" onclick="showSection('elections', this)">
+                    <i class="fas fa-vote-yea"></i> Elections Overview
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════ ALL CLUBS ═══════════════════════════════ -->
+        <div id="section-clubs" class="reg-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.75rem; flex-wrap:wrap; gap:1rem;">
+                <div>
+                    <h2 style="margin-bottom:0.25rem;">Clubs Registry</h2>
+                    <p style="color:var(--text-muted); font-size:0.88rem; margin:0;">{{ clubs|length }} clubs registered</p>
+                </div>
+            </div>
+
+            {% if clubs %}
+            <div class="club-card-grid">
+                {% for club in clubs %}
+                {% set club_events = all_events_by_club.get(club.id, []) %}
+                {% set club_elections = all_elections_by_club.get(club.id, []) %}
+                <div class="club-card">
+                    <!-- Banner -->
+                    <div class="club-card-banner">
+                        {% if club.cover_image %}
+                        <img src="/static/uploads/clubs/{{ club.id }}/details/{{ club.cover_image }}" class="club-banner-img"
+                            onerror="this.style.display='none'">
+                        {% endif %}
+                        <!-- Logo Badge -->
+                        {% if club.logo %}
+                        <img src="/static/uploads/clubs/{{ club.id }}/details/{{ club.logo }}"
+                            class="club-logo-badge"
+                            onerror="this.outerHTML='<div class=\'club-logo-badge\'><i class=\'fas fa-users\' style=\'color:var(--primary);font-size:1.4rem;\'></i></div>'">
+                        {% else %}
+                        <div class="club-logo-badge" style="border-radius:14px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-users" style="color:var(--primary); font-size:1.4rem;"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Body -->
+                    <div class="club-card-body">
+                        <h3 style="font-size:1.1rem; font-weight:700; line-height:1.3;">{{ club.name }}</h3>
+                        {% if club.vision %}
+                        <p style="color:var(--text-muted); font-size:0.83rem; line-height:1.5; flex:1;">
+                            {{ club.vision[:90] }}{% if club.vision|length > 90 %}…{% endif %}
+                        </p>
+                        {% endif %}
+
+                        <!-- Stats Pills -->
+                        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem;">
+                            <span class="stat-pill"><i class="fas fa-calendar" style="color:var(--primary);"></i> {{ club_events|length }} Events</span>
+                            <span class="stat-pill"><i class="fas fa-vote-yea" style="color:#10b981;"></i> {{ club_elections|length }} Elections</span>
+                            {% set completed = club_events|selectattr('report_approved')|list %}
+                            <span class="stat-pill"><i class="fas fa-check" style="color:#10b981;"></i> {{ completed|length }} Reports</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="club-card-actions">
+                        <a href="/super/registry/{{ club.id }}" class="btn btn-primary" style="flex:1; justify-content:center; font-size:0.85rem; padding:0.65rem;">
+                            <i class="fas fa-folder-open"></i> View Registry
+                        </a>
+                        <a href="/admin/club/{{ club.id }}" class="btn btn-outline" style="padding:0.65rem 0.85rem; font-size:0.85rem;" title="Management Panel">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="padding:4rem; text-align:center; border:2px dashed rgba(255,255,255,0.08); border-radius:20px; color:var(--text-muted);">
+                <i class="fas fa-shield-alt" style="font-size:3rem; opacity:0.2; display:block; margin-bottom:1rem;"></i>
+                No clubs registered yet.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ═══════════════════════════════ EVENT REGISTRY ═══════════════════════════════ -->
+        <div id="section-events" class="reg-section" style="display:none;">
+            <div style="margin-bottom:1.75rem;">
+                <h2 style="margin-bottom:0.25rem;">Institutional Event Registry</h2>
+                <p style="color:var(--text-muted); font-size:0.88rem; margin:0;">All events across every club</p>
+            </div>
+
+            {% for club in clubs %}
+            {% set club_events = all_events_by_club.get(club.id, []) %}
+            {% if club_events %}
+            <div style="margin-bottom:3rem;">
+                <!-- Club header -->
+                <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+                    {% if club.logo %}
+                    <img src="/static/uploads/clubs/{{ club.id }}/details/{{ club.logo }}"
+                        style="width:40px; height:40px; border-radius:10px; object-fit:cover; border:2px solid rgba(99,102,241,0.4);"
+                        onerror="this.style.display='none'">
+                    {% endif %}
+                    <div>
+                        <h3 style="margin:0; font-size:1.1rem;">{{ club.name }}</h3>
+                        <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">{{ club_events|length }} events</p>
+                    </div>
+                    <a href="/super/registry/{{ club.id }}" class="btn btn-outline" style="margin-left:auto; font-size:0.8rem; padding:0.4rem 0.9rem;">
+                        Annual Reports <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Event Cards -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:1rem;">
+                    {% for ev in club_events | sort(attribute='timestamp', reverse=True) %}
+                    {% set ev_slug = ev.title | lower | replace(' ','_') | replace('-','_') %}
+                    <div class="card glass" style="padding:0; overflow:hidden; border-radius:16px;">
+                        {% if ev.poster %}
+                        <img src="/static/uploads/clubs/{{ club.id }}/events/{{ ev_slug }}/posters/{{ ev.poster }}"
+                            style="width:100%; height:110px; object-fit:cover;"
+                            onerror="this.style.display='none'">
+                        {% endif %}
+                        <div style="padding:1rem;">
+                            <h4 style="font-size:0.95rem; margin-bottom:0.3rem; font-weight:700;">{{ ev.title }}</h4>
+                            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">
+                                <i class="fas fa-calendar" style="margin-right:0.3rem;"></i>{{ ev.date }}
+                                {% if ev.venue %}&bull; {{ ev.venue }}{% endif %}
+                            </div>
+                            <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                                {% if ev.approved or ev.event_status == 'approved' %}
+                                <span style="font-size:0.7rem; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); padding:0.15rem 0.5rem; border-radius:20px;">Approved</span>
+                                {% endif %}
+                                {% if ev.report_approved %}
+                                <span style="font-size:0.7rem; background:rgba(99,102,241,0.15); color:var(--primary); border:1px solid rgba(99,102,241,0.3); padding:0.15rem 0.5rem; border-radius:20px;">Report Filed</span>
+                                {% elif ev.report %}
+                                <span style="font-size:0.7rem; background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3); padding:0.15rem 0.5rem; border-radius:20px;">Report Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- ═══════════════════════════════ ELECTIONS OVERVIEW ═══════════════════════════════ -->
+        <div id="section-elections" class="reg-section" style="display:none;">
+            <div style="margin-bottom:1.75rem;">
+                <h2 style="margin-bottom:0.25rem;">Elections Overview</h2>
+                <p style="color:var(--text-muted); font-size:0.88rem; margin:0;">All elections across the institution</p>
+            </div>
+
+            {% for club in clubs %}
+            {% set club_elections = all_elections_by_club.get(club.id, []) %}
+            {% if club_elections %}
+            <div style="margin-bottom:2.5rem;">
+                <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1px solid rgba(255,255,255,0.07);">
+                    {% if club.logo %}
+                    <img src="/static/uploads/clubs/{{ club.id }}/details/{{ club.logo }}"
+                        style="width:36px;height:36px;border-radius:9px;object-fit:cover;" onerror="this.style.display='none'">
+                    {% endif %}
+                    <h3 style="margin:0; font-size:1rem;">{{ club.name }}</h3>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:1rem;">
+                    {% for el in club_elections | sort(attribute='createdAt', reverse=True) %}
+                    {% set status_color = '#f59e0b' if el.status == 'nominations_open' else ('#10b981' if el.status == 'voting_started' else ('#6366f1' if el.status == 'results_published' else '#94a3b8')) %}
+                    <div class="card glass" style="padding:1.25rem; border-radius:16px;">
+                        <div style="font-weight:700; margin-bottom:0.4rem; font-size:0.95rem;">{{ el.title }}</div>
+                        <div style="font-size:0.75rem; color:{{ status_color }}; margin-bottom:0.75rem; font-weight:600;">
+                            <i class="fas fa-circle" style="font-size:0.5rem; vertical-align:middle;"></i>
+                            {{ el.status | replace('_',' ') | title }}
+                        </div>
+                        <div style="display:flex; gap:1rem; font-size:0.78rem; color:var(--text-muted);">
+                            <span><i class="fas fa-users" style="margin-right:0.3rem;"></i>{{ el.nominations|length }} nominees</span>
+                            <span><i class="fas fa-vote-yea" style="margin-right:0.3rem;"></i>{{ el.votes|length }} votes</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<script>
+function showSection(name, el) {
+    document.querySelectorAll('.reg-section').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('.reg-nav-pill').forEach(n => n.classList.remove('active'));
+    const sec = document.getElementById('section-' + name);
+    if (sec) sec.style.display = 'block';
+    if (el) el.classList.add('active');
+}
+</script>
+{% endblock %}

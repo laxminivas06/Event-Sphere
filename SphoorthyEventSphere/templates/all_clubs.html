@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<main class="container" style="padding-top: 3rem;">
+    <div style="margin-bottom: 3rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">Sphoorthy <span style="color: var(--primary);">Clubs</span></h1>
+        <p style="color: var(--text-muted);">Discover the diverse communities that make our college vibrant.</p>
+    </div>
+
+    <div class="premium-grid">
+        {% for club in clubs %}
+        <a href="/club/{{ club.id }}" class="club-card-link">
+            <div class="club-card glass">
+                <div class="club-card-hero" style="background-image: url('{% if club.cover_image %}/static/uploads/clubs/{{ club.id }}/details/{{ club.cover_image }}{% else %}https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=400{% endif %}');">
+                    <div class="club-logo-wrap">
+                        <img src="{% if club.logo %}/static/uploads/clubs/{{ club.id }}/details/{{ club.logo }}{% else %}https://ui-avatars.com/api/?name={{ club.name }}&background=6366f1&color=fff{% endif %}" alt="{{ club.name }}">
+                    </div>
+                </div>
+                <div class="club-card-body">
+                    <h3>{{ club.name }}</h3>
+                    <p>{{ club.vision|truncate(150) }}</p>
+                    <div class="club-footer">
+                        <span><i class="fas fa-user-tie"></i> {{ club.mentor.name if club.mentor else 'N/A' }}</span>
+                        <span class="btn-arrow">Explore <i class="fas fa-chevron-right"></i></span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</main>
+
+<style>
+.premium-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2.5rem; }
+
+.club-card-link { text-decoration: none; color: inherit; }
+.club-card { border-radius: 32px; overflow: hidden; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); height: 100%; border: 1px solid rgba(255,255,255,0.05); }
+.club-card:hover { transform: translateY(-12px); border-color: var(--primary); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+
+.club-card-hero { height: 140px; background-size: cover; background-position: center; position: relative; }
+.club-logo-wrap {
+    position: absolute; bottom: -30px; left: 1.5rem;
+    width: 70px; height: 70px; border-radius: 20px;
+    background: #1e293b; padding: 4px; border: 3px solid #1e293b;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+.club-logo-wrap img { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; }
+
+.club-card-body { padding: 3rem 1.5rem 1.5rem 1.5rem; }
+.club-card-body h3 { font-size: 1.4rem; font-weight: 800; margin: 0 0 0.75rem 0; color: #fff; }
+.club-card-body p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.5rem; }
+
+.club-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.25rem; font-size: 0.85rem; }
+.club-footer span { color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; }
+.btn-arrow { color: var(--primary) !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+
+@media (max-width: 768px) {
+    .premium-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

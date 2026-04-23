@@ -1,0 +1,257 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --sidebar-width: 280px;
+    }
+    
+    .dashboard-layout {
+        display: flex;
+        min-height: calc(100vh - 80px);
+        background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent),
+                    radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent);
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+        width: var(--sidebar-width);
+        background: rgba(10, 10, 20, 0.4);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 2.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 80px);
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        border: 1px solid transparent;
+        cursor: pointer;
+        margin-bottom: 0.25rem;
+    }
+
+    .nav-item i {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+    }
+
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .nav-item.active {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--primary);
+        border-color: rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Content Area */
+    .main-content {
+        flex: 1;
+        padding: 2.5rem;
+    }
+
+    /* Professional Mobile Responsiveness */
+    @media (max-width: 1024px) {
+        .dashboard-layout { flex-direction: column; }
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            top: 0;
+            padding: 1rem;
+            flex-direction: row;
+            overflow-x: auto;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .nav-item { white-space: nowrap; margin-bottom: 0; }
+        .main-content { padding: 1.5rem 1rem; }
+    }
+
+    .glass {
+        position: relative;
+        overflow-x: auto !important;
+    }
+    .glass::-webkit-scrollbar { height: 6px; }
+    .glass::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+    }
+</style>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div style="margin-bottom: 2rem;">
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Main Menu</p>
+            <a href="/admin" class="nav-item">
+                <i class="fas fa-tools"></i>
+                <span>Clubs Setup & Config</span>
+            </a>
+            <a href="/super/approvals" class="nav-item">
+                <i class="fas fa-check-circle"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="/super/master" class="nav-item">
+                <i class="fas fa-database"></i>
+                <span>Master DB</span>
+            </a>
+        </div>
+
+        <div>
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Governance</p>
+            <a href="/super/registry" class="nav-item">
+                <i class="fas fa-folder-open"></i>
+                <span>Institutional Registry</span>
+            </a>
+            <a href="/admin/contacts" class="nav-item">
+                <i class="fas fa-address-book"></i>
+                <span>Contacts</span>
+            </a>
+            <a href="/super/settings" class="nav-item active">
+                <i class="fas fa-cog"></i>
+                <span>Global Settings</span>
+            </a>
+            <div class="nav-item" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+                <span>Refresh</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Global System Settings</h2>
+        </div>
+        
+        <div class="glass" style="border-radius: 24px; padding: 2.5rem; max-width: 700px; margin-bottom: 2.5rem;">
+            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-credit-card" style="color: var(--primary);"></i> Institutional Payment Gateway
+            </h3>
+            <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">
+                Configure the college-wide <strong>Razorpay</strong> credentials. All club events with registration fees will use this account for processing payments.
+            </p>
+            
+            <form id="razorpaySettingsForm">
+                <div style="display: grid; gap: 1.5rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Razorpay Key ID</label>
+                        <input type="text" id="rzp_key_id" name="razorpay_key_id" class="form-input" placeholder="rzp_test_..." required>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Razorpay Key Secret</label>
+                        <input type="password" id="rzp_key_secret" name="razorpay_key_secret" class="form-input" placeholder="Your secret key" required>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; font-size: 0.85rem; color: var(--text-muted);">
+                        <i class="fas fa-info-circle" style="color: var(--primary); margin-right: 0.4rem;"></i>
+                        Updating these keys will immediately affect all active event registrations.
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: max-content;">Save Gateway Keys</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="glass" style="border-radius: 24px; padding: 2.5rem; max-width: 700px;">
+            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-map-marker-alt" style="color: var(--primary);"></i> Election Zone Configuration
+            </h3>
+            <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">Set the geographical boundary inside which students are allowed to cast their votes.</p>
+            <form id="globalSettingsForm">
+                <div style="display: grid; gap: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Campus Latitude</label>
+                            <input type="text" id="setting_lat" name="campus_lat" class="form-input" placeholder="e.g. 17.123456" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Campus Longitude</label>
+                            <input type="text" id="setting_lng" name="campus_lng" class="form-input" placeholder="e.g. 78.123456" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Allowed Radius (meters)</label>
+                        <input type="number" id="setting_radius" name="campus_radius" class="form-input" placeholder="e.g. 500" value="500" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: max-content;">Save Location Logic</button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Fetch Settings
+        fetch('/api/settings')
+        .then(res => res.json())
+        .then(data => {
+            if(data.success && data.settings) {
+                const s = data.settings;
+                // Location settings
+                document.getElementById('setting_lat').value = s.campus_lat || '';
+                document.getElementById('setting_lng').value = s.campus_lng || '';
+                document.getElementById('setting_radius').value = s.campus_radius || '500';
+                // Razorpay settings
+                document.getElementById('rzp_key_id').value = s.razorpay_key_id || '';
+                document.getElementById('rzp_key_secret').value = s.razorpay_key_secret || '';
+            }
+        });
+    });
+
+    async function saveSettings(payload, btn) {
+        const originalText = btn.innerText;
+        btn.disabled = true; btn.innerText = "Saving...";
+        
+        const res = await fetch('/api/settings/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (res.ok) {
+            alert("Settings updated successfully!");
+        } else {
+            alert("Failed to save settings. Please check permissions.");
+        }
+        btn.disabled = false; btn.innerText = originalText;
+    }
+
+    document.getElementById('globalSettingsForm').onsubmit = (ev) => {
+        ev.preventDefault();
+        const payload = {
+            campus_lat: document.getElementById('setting_lat').value,
+            campus_lng: document.getElementById('setting_lng').value,
+            campus_radius: document.getElementById('setting_radius').value
+        };
+        saveSettings(payload, ev.target.querySelector('button'));
+    };
+
+    document.getElementById('razorpaySettingsForm').onsubmit = (ev) => {
+        ev.preventDefault();
+        const payload = {
+            razorpay_key_id: document.getElementById('rzp_key_id').value,
+            razorpay_key_secret: document.getElementById('rzp_key_secret').value
+        };
+        saveSettings(payload, ev.target.querySelector('button'));
+    };
+</script>
+{% endblock %}

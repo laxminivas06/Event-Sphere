@@ -1,0 +1,200 @@
+:root {
+    --tf-primary: #6366f1;
+    --tf-secondary: #a855f7;
+    --tf-accent: #f472b6;
+    --tf-bg: #0f172a;
+    --tf-glass: rgba(30, 41, 59, 0.7);
+    --tf-border: rgba(255, 255, 255, 0.1);
+    --tf-text: #f1f5f9;
+    --tf-text-muted: #94a3b8;
+}
+
+body.techfest-body {
+    background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+    color: var(--tf-text);
+    font-family: 'Outfit', sans-serif;
+    margin: 0;
+    min-height: 100vh;
+}
+
+.tf-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.tf-glass-card {
+    background: var(--tf-glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--tf-border);
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.tf-step-header {
+    margin-bottom: 2rem;
+}
+
+.tf-step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.tf-step-indicator::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--tf-border);
+    z-index: 0;
+}
+
+.tf-step {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--tf-bg);
+    border: 2px solid var(--tf-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.tf-step.active {
+    background: var(--tf-primary);
+    border-color: var(--tf-primary);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.tf-step.completed {
+    background: var(--tf-secondary);
+    border-color: var(--tf-secondary);
+}
+
+.tf-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.tf-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--tf-text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.tf-input {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--tf-border);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    color: white;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.tf-input:focus {
+    border-color: var(--tf-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.tf-btn {
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tf-btn-primary {
+    background: linear-gradient(135deg, var(--tf-primary), var(--tf-secondary));
+    color: white;
+}
+
+.tf-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+}
+
+.tf-btn-outline {
+    background: transparent;
+    border: 1px solid var(--tf-border);
+    color: white;
+}
+
+.tf-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tf-event-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--tf-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.tf-event-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tf-event-card.selected {
+    border-color: var(--tf-primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.tf-event-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--tf-primary);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.tf-animation-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--tf-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--tf-border);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--tf-text-muted);
+}

@@ -1,0 +1,139 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<main class="container" style="padding-top: 3rem;">
+    <div style="margin-bottom: 3rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">Your <span style="color: var(--primary);">History</span></h1>
+        <p style="color: var(--text-muted);">Track your participation and investment in campus life.</p>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="stat-card glass">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ stats.attended_count }}</span>
+                <span class="stat-label">Events Attended</span>
+            </div>
+        </div>
+        <div class="stat-card glass">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                <i class="fas fa-indian-rupee-sign"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">₹{{ stats.total_spent }}</span>
+                <span class="stat-label">Total Investment</span>
+            </div>
+        </div>
+        <div class="stat-card glass">
+            <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ stats.unique_clubs }}</span>
+                <span class="stat-label">Clubs Explored</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table/List -->
+    <div class="glass" style="border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="padding: 1.5rem 2rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 1.25rem; margin: 0;">Participation Timeline</h2>
+            <button class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;" onclick="window.print()">
+                <i class="fas fa-download"></i> Export History
+            </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: rgba(255,255,255,0.01); color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <th style="padding: 1.25rem 2rem;">Event & Category</th>
+                        <th style="padding: 1.25rem 2rem;">Club</th>
+                        <th style="padding: 1.25rem 2rem;">Date</th>
+                        <th style="padding: 1.25rem 2rem;">Amount</th>
+                        <th style="padding: 1.25rem 2rem;">Status</th>
+                    </tr>
+                </thead>
+                <tbody style="color: #e2e8f0; font-size: 0.95rem;">
+                    {% if registrations %}
+                        {% for r in registrations %}
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 1.5rem 2rem;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ r.event_title }}</div>
+                                <span style="font-size: 0.75rem; color: var(--primary); background: rgba(99,102,241,0.1); padding: 0.2rem 0.6rem; border-radius: 6px;">{{ r.type }}</span>
+                            </td>
+                            <td style="padding: 1.5rem 2rem; color: var(--text-muted);">{{ r.club_name }}</td>
+                            <td style="padding: 1.5rem 2rem;">{{ r.date }}</td>
+                            <td style="padding: 1.5rem 2rem; font-weight: 700;">₹{{ r.fee }}</td>
+                            <td style="padding: 1.5rem 2rem;">
+                                {% if r.payment_verified %}
+                                    <span style="color: #10b981; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-check-circle"></i> Confirmed
+                                    </span>
+                                {% else %}
+                                    <span style="color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="padding: 5rem 2rem; text-align: center; color: var(--text-muted);">
+                                <i class="fas fa-history" style="font-size: 3rem; margin-bottom: 1.5rem; opacity: 0.1;"></i>
+                                <p>No event history found yet. Start registering for exciting events!</p>
+                                <a href="/" class="btn btn-primary" style="margin-top: 1.5rem;">Browse Events</a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<style>
+.stat-card {
+    padding: 2rem;
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .stat-card { padding: 1.5rem; }
+    table th:nth-child(2), table td:nth-child(2),
+    table th:nth-child(4), table td:nth-child(4) { display: none; }
+}
+</style>
+{% endblock %}

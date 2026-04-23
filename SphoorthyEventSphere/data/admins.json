@@ -1,0 +1,16 @@
+[
+    {
+        "name": "Super Admin",
+        "email": "admin@college.edu",
+        "phone": "0000000000",
+        "role": "super_admin",
+        "password": "Nivas"
+    },
+    {
+        "name": "Event Manager",
+        "email": "eventmanager@college.edu",
+        "password": "event123",
+        "phone": "",
+        "role": "event_manager"
+    }
+]

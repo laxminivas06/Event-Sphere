@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ techfest.title }} - Registration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='techfest.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="techfest-body">
+    <div class="tf-container">
+        <header style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #fff, #a5b4fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">{{ techfest.title }}</h1>
+            <p style="color: var(--tf-text-muted);">{{ techfest.month }} {{ techfest.year }} edition</p>
+        </header>
+
+        <div class="tf-glass-card">
+            <div class="tf-step-indicator">
+                <div class="tf-step active" id="step-dot-1">1</div>
+                <div class="tf-step" id="step-dot-2">2</div>
+                <div class="tf-step" id="step-dot-3">3</div>
+                <div class="tf-step" id="step-dot-4">4</div>
+                <div class="tf-step" id="step-dot-5">5</div>
+            </div>
+
+            <form id="tf-registration-form" oninput="saveProgress()">
+                <!-- Step 1: Personal Information & Institution Selection -->
+                <div class="tf-step-content tf-animation-fade-in" id="step-1">
+                    <div class="tf-step-header">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Basic Information</h2>
+                        <p style="color: var(--tf-text-muted);">Tell us who you are.</p>
+                    </div>
+
+                    {% if not user %}
+                    {% if techfest.allow_external %}
+                    <div class="tf-form-group">
+                        <label class="tf-label">Are you from Sphoorthy Engineering College?</label>
+                        <div style="display: flex; gap: 2rem; margin: 0.5rem 0 1.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="radio" name="is_spoorthy" value="yes" onchange="toggleSpoorthyUI(); saveProgress()"> Yes
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="radio" name="is_spoorthy" value="no" checked onchange="toggleSpoorthyUI(); saveProgress()"> No, Other College
+                            </label>
+                        </div>
+                    </div>
+                    {% else %}
+                    <input type="hidden" name="is_spoorthy" value="yes">
+                    <p style="font-size: 0.85rem; color: var(--tf-text-muted); margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <i class="fas fa-info-circle"></i> This event is exclusive to <strong>Sphoorthy Engineering College</strong> students.
+                    </p>
+                    {% endif %}
+
+                    <div id="spoorthy-fetch-box" class="glass" style="padding: 1.2rem; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: none;">
+                        <h4 style="margin-top: 0; margin-bottom: 0.8rem; font-size: 0.9rem;">Sphoorthy Login</h4>
+                        <p style="font-size: 0.75rem; color: var(--tf-text-muted); margin-bottom: 1rem;">Students from our college must log in to proceed.</p>
+                        <button type="button" class="tf-btn tf-btn-outline" style="width: 100%; padding: 0.6rem;" onclick="redirectToLogin()">Login to your Account</button>
+                    </div>
+                    {% else %}
+                    <div style="background: rgba(99, 102, 241, 0.1); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <p style="margin:0; font-size: 0.9rem;">Welcome back, <strong>{{ user.name }}</strong>! Your details have been auto-filled.</p>
+                        <input type="hidden" name="is_spoorthy" value="yes">
+                    </div>
+                    {% endif %}
+
+                    <div class="tf-form-group">
+                        <label class="tf-label">Full Name</label>
+                        <input type="text" name="name" id="main-name" class="tf-input" placeholder="Your full name" required value="{{ user.name if user else '' }}" {{ 'readonly' if user else '' }}>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="tf-form-group">
+                            <label class="tf-label">Email Address</label>
+                            <input type="email" name="email" id="main-email" class="tf-input" placeholder="name@example.com" required value="{{ user.email if user else '' }}">
+                        </div>
+                        <div class="tf-form-group">
+                            <label class="tf-label">Mobile Number</label>
+                            <input type="tel" name="mobile" id="main-mobile" class="tf-input" placeholder="10-digit number" required pattern="[0-9]{10}" value="{{ user.phone if user else '' }}">
+                        </div>
+                    </div>
+                    <div class="tf-form-group">
+                        <label class="tf-label">Gender</label>
+                        <select name="gender" id="main-gender" class="tf-input" required onchange="saveProgress()">
+                            <option value="">Select Gender</option>
+                            <option value="Male" {{ 'selected' if user and user.gender == 'Male' else '' }}>Male</option>
+                            <option value="Female" {{ 'selected' if user and user.gender == 'Female' else '' }}>Female</option>
+                            <option value="Other" {{ 'selected' if user and user.gender == 'Other' else '' }}>Other</option>
+                        </select>
+                    </div>
+                    
+                    <div style="text-align: right; margin-top: 2rem;">
+                        <button type="button" class="tf-btn tf-btn-primary" onclick="nextStep(2)">Continue</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: College Details -->
+                <div class="tf-step-content tf-animation-fade-in" id="step-2" style="display: none;">
+                    <div class="tf-step-header">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Institutional Details</h2>
+                        <p style="color: var(--tf-text-muted);">Tell us about your college.</p>
+                    </div>
+
+                    <div class="tf-form-group">
+                        <label class="tf-label">College Name</label>
+                        <input type="text" name="college_name" id="college-name" class="tf-input" required value="{{ 'Sphoorthy Engineering College' if user else '' }}" {{ 'readonly' if user else '' }}>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="tf-form-group">
+                            <label class="tf-label">State</label>
+                            <input type="text" name="college_state" id="college-state" class="tf-input" required value="{{ 'Telangana' if user else '' }}" {{ 'readonly' if user else '' }}>
+                        </div>
+                        <div class="tf-form-group">
+                            <label class="tf-label">Affiliated University</label>
+                            <input type="text" name="university" id="college-university" class="tf-input" required value="{{ 'JNTUH' if user else '' }}" {{ 'readonly' if user else '' }}>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="tf-form-group">
+                            <label class="tf-label">Education Type</label>
+                            <select name="edu_type" id="edu-type" class="tf-input" required onchange="updateDepts(); saveProgress()">
+                                <option value="">Select Type</option>
+                                <option value="UG" {{ 'selected' if user and user.course == 'B.Tech' else '' }}>Undergraduate (UG)</option>
+                                <option value="PG" {{ 'selected' if user and user.course != 'B.Tech' and user.course else '' }}>Postgraduate (PG)</option>
+                            </select>
+                        </div>
+                        <div class="tf-form-group">
+                            <label class="tf-label">Department</label>
+                            <select name="department" id="dept-select" class="tf-input" required onchange="saveProgress()">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        <button type="button" class="tf-btn tf-btn-outline" onclick="prevStep(1)">Back</button>
+                        <button type="button" class="tf-btn tf-btn-primary" onclick="nextStep(3)">Continue</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Event Selection & Team Details -->
+                <div class="tf-step-content tf-animation-fade-in" id="step-3" style="display: none;">
+                    <div class="tf-step-header">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Event Participation</h2>
+                        <p style="color: var(--tf-text-muted);">Choose your events and form teams.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" id="events-grid">
+                        {% for ev in events %}
+                        <div class="tf-event-card" onclick="toggleEvent('{{ ev.id }}')" id="ev-card-{{ ev.id }}">
+                            <h3 style="margin-top: 0; font-size: 1.1rem;">{{ ev.name }}</h3>
+                            <p style="font-size: 0.8rem; color: var(--tf-text-muted); margin-bottom: 0.8rem;">{{ ev.description[:80] }}...</p>
+                             <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #10b981;">{{ 'Free' if ev.payment_type == 'free' or ev.registration_fee == 0 else '₹' ~ ev.registration_fee }}</span>
+                                <span style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;">{{ 'Team (' ~ ev.min_team_size ~ '-' ~ ev.max_team_size ~ ')' if ev.max_team_size > 1 else 'Individual' }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div id="team-details-container" style="margin-top: 2rem;"></div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        <button type="button" class="tf-btn tf-btn-outline" onclick="prevStep(2)">Back</button>
+                        <button type="button" class="tf-btn tf-btn-primary" onclick="nextStep(4)">Continue</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Declaration -->
+                <div class="tf-step-content tf-animation-fade-in" id="step-4" style="display: none;">
+                    <div class="tf-step-header">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Declaration</h2>
+                        <p style="color: var(--tf-text-muted);">Please review and confirm your details.</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                        <h4 style="margin-top: 0;">Self Declaration</h4>
+                        <p>I hereby declare that the information provided by me is true and accurate to the best of my knowledge. I understand that any false information or misrepresentation may lead to immediate disqualification from the event without any refund.</p>
+                        <p>I accept and confirm that all the above details are truly mine and no any false data is provided.</p>
+                        
+                        <div style="margin-top: 1.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                                <input type="checkbox" id="declaration-check" required style="width: 18px; height: 18px;" onchange="saveProgress()">
+                                <span>I accept the above declaration.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="payment-summary" style="margin-top: 1rem; padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <h3 id="total-fee-display" style="text-align: right; color: #10b981;">Total Fee: ₹0</h3>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                        <button type="button" class="tf-btn tf-btn-outline" onclick="prevStep(3)">Back</button>
+                        <button type="button" class="tf-btn tf-btn-primary" id="final-submit-btn" onclick="processRegistration()">Proceed to Pay</button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Success & Ticket -->
+                <div class="tf-step-content tf-animation-fade-in" id="step-5" style="display: none; text-align: center;">
+                    <div style="padding: 2rem 1rem;">
+                        <div style="width: 80px; height: 80px; background: #10b981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem;">
+                            ✓
+                        </div>
+                        <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Registration Successful!</h2>
+                        <p style="color: var(--tf-text-muted); margin-bottom: 2rem;">Your registration ID is <strong id="success-reg-id" style="color: #fff;">#...</strong></p>
+                        
+                        <div id="ticket-qr-container" class="glass" style="padding: 2rem; display: inline-block; border-radius: 12px; margin-bottom: 2rem;">
+                            <!-- QR Code injected here -->
+                             <p style="font-size: 0.8rem; color: var(--tf-text-muted); margin-top: 1rem;">Show this QR at the venue for check-in.</p>
+                        </div>
+                        
+                        <div>
+                            <button type="button" class="tf-btn tf-btn-primary" onclick="window.print()">Download Ticket</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const techfestId = '{{ techfest.id }}';
+        const eventData = {{ events|tojson }};
+        const departments = {{ departments|tojson }};
+        const rzpKey = '{{ razorpay_key or "" }}';
+        const userDept = "{{ user.dept if user else '' }}";
+        
+        let currentStep = 1;
+        const selectedEvents = new Set();
+        let totalFee = 0;
+
+        function toggleSpoorthyUI() {
+            const radio = document.querySelector('input[name="is_spoorthy"]:checked');
+            if (!radio) return;
+            const isSpoorthy = radio.value === 'yes';
+            const fetchBox = document.getElementById('spoorthy-fetch-box');
+            const collegeName = document.getElementById('college-name');
+            const collegeState = document.getElementById('college-state');
+            const collegeUniversity = document.getElementById('college-university');
+
+            if (isSpoorthy) {
+                if (fetchBox) fetchBox.style.display = 'block';
+                collegeName.value = "Sphoorthy Engineering College";
+                collegeState.value = "Telangana";
+                collegeUniversity.value = "JNTUH";
+                collegeName.readOnly = true;
+                collegeState.readOnly = true;
+                collegeUniversity.readOnly = true;
+            } else {
+                if (fetchBox) fetchBox.style.display = 'none';
+                // Only clear if it was previously set to Sphoorthy
+                if (collegeName.value === "Sphoorthy Engineering College") {
+                    collegeName.value = "";
+                    collegeState.value = "";
+                    collegeUniversity.value = "";
+                }
+                collegeName.readOnly = false;
+                collegeState.readOnly = false;
+                collegeUniversity.readOnly = false;
+            }
+            
+            // Re-render team inputs if they exist to match the college type
+            if (selectedEvents.size > 0) {
+                renderTeamInputs();
+            }
+        }
+
+        function redirectToLogin() {
+            window.location.href = `/login?next=${window.location.pathname}`;
+        }
+
+        function updateDepts() {
+            const eduType = document.getElementById('edu-type').value;
+            const deptSelect = document.getElementById('dept-select');
+            deptSelect.innerHTML = '<option value="">Select Department</option>';
+            const list = departments[eduType] || [];
+            list.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                if (d === userDept) opt.selected = true;
+                deptSelect.appendChild(opt);
+            });
+        }
+
+        function nextStep(step, skipValidation = false) {
+            if (!skipValidation) {
+                const container = document.getElementById(`step-${currentStep}`);
+                const inputs = container.querySelectorAll('input[required], select[required]');
+                for (let i of inputs) {
+                    if (!i.value || (i.type === 'checkbox' && !i.checked)) {
+                        Swal.fire('Required', 'Please complete all required fields.', 'warning');
+                        return;
+                    }
+                }
+
+                if (currentStep === 3) {
+                    if (selectedEvents.size === 0) {
+                        Swal.fire('Error', 'Please select at least one event.', 'error');
+                        return;
+                    }
+                    // Validate team sizes
+                    for (let id of selectedEvents) {
+                        const ev = eventData.find(e => e.id === id);
+                        const memberCount = document.getElementById(`members-${id}`)?.children.length || 0;
+                        const totalParticipants = memberCount + 1; // self + members
+                        if (totalParticipants < (ev.min_team_size || 1)) {
+                            Swal.fire('Incomplete Team', `The event "${ev.name}" requires at least ${ev.min_team_size} members in total. Please add more members.`, 'warning');
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (step === 3) {
+                renderTeamInputs();
+            }
+
+            if (step === 4) {
+                calculateTotalFee();
+            }
+
+            document.getElementById(`step-${currentStep}`).style.display = 'none';
+            document.getElementById(`step-${step}`).style.display = 'block';
+            document.getElementById(`step-dot-${step}`).classList.add('active');
+            currentStep = step;
+            saveProgress();
+            window.scrollTo(0,0);
+        }
+
+        function prevStep(step) {
+            document.getElementById(`step-${currentStep}`).style.display = 'none';
+            document.getElementById(`step-${step}`).style.display = 'block';
+            document.getElementById(`step-dot-${currentStep}`).classList.remove('active');
+            currentStep = step;
+            saveProgress();
+            window.scrollTo(0,0);
+        }
+
+        function toggleEvent(id) {
+            if (selectedEvents.has(id)) {
+                selectedEvents.delete(id);
+                document.getElementById(`ev-card-${id}`).classList.remove('selected');
+            } else {
+                if (!{{ techfest.allow_multi_participation|default(false)|tojson }} && selectedEvents.size > 0) {
+                    Swal.fire('Notice', 'Only one event participation allowed.', 'warning');
+                    return;
+                }
+                selectedEvents.add(id);
+                document.getElementById(`ev-card-${id}`).classList.add('selected');
+            }
+            renderTeamInputs();
+            saveProgress();
+        }
+
+        function renderTeamInputs(restoreData = null) {
+            const container = document.getElementById('team-details-container');
+            container.innerHTML = '';
+            
+            const isSpoorthy = document.querySelector('input[name="is_spoorthy"]:checked')?.value === 'yes';
+            const defaultCollege = document.getElementById('college-name').value || '';
+
+            selectedEvents.forEach(id => {
+                const ev = eventData.find(e => e.id === id);
+                if (ev.max_team_size > 1) {
+                    const div = document.createElement('div');
+                    div.className = 'tf-glass-card';
+                    div.style.marginTop = '1rem';
+                    div.style.border = '1px solid rgba(255,255,255,0.1)';
+                    const teamNameVal = restoreData ? (restoreData[`team_name_${id}`] || '') : '';
+                    
+                    let inputFields = '';
+                    if (isSpoorthy) {
+                        inputFields = `
+                           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                               <div class="tf-form-group">
+                                   <label class="tf-label" style="font-size: 0.75rem;">Roll Number</label>
+                                   <input type="text" id="mem-roll-${id}" placeholder="e.g. 21N61A0501" class="tf-input">
+                               </div>
+                               <div class="tf-form-group">
+                                   <label class="tf-label" style="font-size: 0.75rem;">Date of Birth</label>
+                                   <input type="date" id="mem-dob-${id}" class="tf-input">
+                               </div>
+                           </div>
+                           <button type="button" class="tf-btn tf-btn-outline" style="width: 100%; margin-top: 0.5rem;" onclick="addTeamMember('${id}', ${ev.max_team_size}, true)">Fetch & Add Internal Member</button>
+                        `;
+                    } else {
+                        inputFields = `
+                           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                               <div class="tf-form-group">
+                                   <label class="tf-label" style="font-size: 0.75rem;">Member Name</label>
+                                   <input type="text" id="mem-name-${id}" placeholder="Full Name" class="tf-input">
+                               </div>
+                               <div class="tf-form-group">
+                                   <label class="tf-label" style="font-size: 0.75rem;">Email ID</label>
+                                   <input type="email" id="mem-email-${id}" placeholder="name@example.com" class="tf-input">
+                               </div>
+                               <div class="tf-form-group">
+                                   <label class="tf-label" style="font-size: 0.75rem;">Contact Number</label>
+                                   <input type="tel" id="mem-phone-${id}" placeholder="10-digit mobile" class="tf-input">
+                               </div>
+                               <div class="tf-form-group">
+                                   <label class="tf-label" style="font-size: 0.75rem;">College Name</label>
+                                   <input type="text" id="mem-college-${id}" placeholder="College Name" class="tf-input" value="${defaultCollege}">
+                               </div>
+                           </div>
+                           <button type="button" class="tf-btn tf-btn-outline" style="width: 100%; margin-top: 0.5rem;" onclick="addTeamMember('${id}', ${ev.max_team_size}, false)">Add Team Member</button>
+                        `;
+                    }
+
+                    div.innerHTML = `
+                        <h4 style="margin-top:0;">Team Details: ${ev.name}</h4>
+                        <div class="tf-form-group">
+                            <label class="tf-label">Team Name</label>
+                            <input type="text" name="team_name_${id}" class="tf-input" required placeholder="Enter team name" value="${teamNameVal}">
+                        </div>
+                        <div id="members-${id}"></div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px;">
+                           <p style="font-size: 0.75rem; color: var(--tf-text-muted); margin: 0 0 0.5rem 0;">Add Team Members (Total required: ${ev.min_team_size})</p>
+                           ${inputFields}
+                        </div>
+                    `;
+                    container.appendChild(div);
+
+                    if (restoreData && restoreData[`mem_names_${id}`]) {
+                        const names = restoreData[`mem_names_${id}`];
+                        const metas = restoreData[`mem_metas_${id}`] || [];
+                        names.forEach((n, idx) => {
+                            addMemberToUI(id, n, metas[idx] || '');
+                        });
+                    }
+                }
+            });
+        }
+
+        async function addTeamMember(evId, max, isInternal) {
+            const div = document.getElementById(`members-${evId}`);
+            if (div.children.length + 1 >= max) return Swal.fire('Error', `Max team size is ${max}`, 'error');
+
+            if (isInternal) {
+                const rollInput = document.getElementById(`mem-roll-${evId}`);
+                const dobInput = document.getElementById(`mem-dob-${evId}`);
+                const roll = rollInput.value;
+                const dob = dobInput.value;
+                if (!roll || !dob) return Swal.fire('Error', 'Enter Member Roll and DOB', 'error');
+
+                Swal.showLoading();
+                try {
+                    const resp = await fetch(`/em/api/student-lookup?roll=${roll}&dob=${dob}`);
+                    const data = await resp.json();
+                    if (data.success) {
+                        addMemberToUI(evId, data.student.name, data.student.roll_number);
+                        rollInput.value = ''; dobInput.value = '';
+                        Swal.fire('Added', `${data.student.name} added!`, 'success');
+                        saveProgress();
+                    } else { Swal.fire('Error', data.message, 'error'); }
+                } catch (e) { Swal.fire('Error', 'Failed to fetch student details.', 'error'); }
+            } else {
+                const nInput = document.getElementById(`mem-name-${evId}`);
+                const eInput = document.getElementById(`mem-email-${evId}`);
+                const pInput = document.getElementById(`mem-phone-${evId}`);
+                const cInput = document.getElementById(`mem-college-${evId}`);
+                if (!nInput.value || !eInput.value || !pInput.value || !cInput.value) return Swal.fire('Required', 'Please fill all member details.', 'warning');
+                
+                const meta = `${cInput.value} | ${eInput.value} | ${pInput.value}`;
+                addMemberToUI(evId, nInput.value, meta);
+                nInput.value = ''; eInput.value = ''; pInput.value = '';
+                saveProgress();
+            }
+        }
+
+        function addMemberToUI(evId, name, meta) {
+            const div = document.getElementById(`members-${evId}`);
+            const count = div.children.length + 2; // self is 1, so first member is 2
+            const mDiv = document.createElement('div');
+            mDiv.className = 'glass';
+            mDiv.style.padding = '1rem';
+            mDiv.style.marginBottom = '0.75rem';
+            mDiv.style.display = 'flex';
+            mDiv.style.justifyContent = 'space-between';
+            mDiv.style.alignItems = 'center';
+            mDiv.style.borderLeft = '4px solid #6366f1';
+            mDiv.innerHTML = `
+                <div style="font-size: 0.85rem;">
+                    <span style="font-size: 0.7rem; color: #6366f1; text-transform: uppercase; font-weight: 700;">Member ${count}</span>
+                    <div style="margin-top: 0.2rem;">
+                        <strong>${name}</strong><br>
+                        <span style="color: var(--tf-text-muted); font-size: 0.75rem; word-break: break-all;">${meta}</span>
+                    </div>
+                </div>
+                <input type="hidden" name="mem_name_${evId}[]" value="${name}">
+                <input type="hidden" name="mem_meta_${evId}[]" value="${meta}">
+                <button type="button" style="background:rgba(255,77,77,0.1); border:none; color:#ff4d4d; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor:pointer;" onclick="this.parentElement.remove(); saveProgress(); renderTeamInputs()">✕</button>
+            `;
+            div.appendChild(mDiv);
+        }
+
+        function calculateTotalFee() {
+            totalFee = 0;
+            selectedEvents.forEach(id => {
+                const ev = eventData.find(e => e.id === id);
+                totalFee += parseInt(ev.registration_fee || 0);
+            });
+            document.getElementById('total-fee-display').textContent = `Total Fee: ₹${totalFee}`;
+            const btn = document.getElementById('final-submit-btn');
+            btn.textContent = totalFee > 0 ? 'Pay & Register' : 'Complete Registration';
+        }
+
+        function saveProgress() {
+            const formData = new FormData(document.getElementById('tf-registration-form'));
+            const data = {
+                currentStep: currentStep,
+                selectedEvents: Array.from(selectedEvents),
+                formFields: Object.fromEntries(formData.entries()),
+                teamMembers: {}
+            };
+            selectedEvents.forEach(id => {
+                const names = formData.getAll(`mem_name_${id}[]`);
+                const metas = formData.getAll(`mem_meta_${id}[]`);
+                if (names.length > 0) {
+                    data.teamMembers[`mem_names_${id}`] = names;
+                    data.teamMembers[`mem_metas_${id}`] = metas;
+                }
+            });
+            localStorage.setItem(`tf_reg_${techfestId}`, JSON.stringify(data));
+        }
+
+        function restoreProgress() {
+            const saved = localStorage.getItem(`tf_reg_${techfestId}`);
+            if (!saved) return;
+            const data = JSON.parse(saved);
+            data.selectedEvents.forEach(id => {
+                selectedEvents.add(id);
+                const el = document.getElementById(`ev-card-${id}`);
+                if (el) el.classList.add('selected');
+            });
+            renderTeamInputs(data.teamMembers);
+            for (let [name, value] of Object.entries(data.formFields)) {
+                if (name.includes('[]')) continue; // Skip array fields, handled by teamMembers
+                
+                const inputs = document.querySelectorAll(`[name="${name}"]`);
+                if (inputs.length > 0) {
+                    if (inputs[0].type === 'radio') {
+                        inputs.forEach(radio => {
+                            if (radio.value === value) radio.checked = true;
+                        });
+                    } else {
+                        inputs[0].value = value;
+                    }
+                }
+            }
+            if (data.currentStep > 1) {
+                currentStep = data.currentStep;
+                for (let i = 1; i <= currentStep; i++) {
+                    document.getElementById(`step-dot-${i}`).classList.add('active');
+                }
+                document.getElementById('step-1').style.display = 'none';
+                document.getElementById(`step-${currentStep}`).style.display = 'block';
+            }
+            toggleSpoorthyUI();
+            updateDepts();
+            calculateTotalFee();
+        }
+
+        async function processRegistration() {
+            if (!document.getElementById('declaration-check').checked) {
+                return Swal.fire('Required', 'Please accept the declaration.', 'warning');
+            }
+            const formData = new FormData(document.getElementById('tf-registration-form'));
+            const studentDetails = {
+                name: formData.get('name'), email: formData.get('email'), gender: formData.get('gender'),
+                mobile: formData.get('mobile'), is_spoorthy: formData.get('is_spoorthy'),
+                roll_number: '{{ user.roll_number if user else "" }}',
+                college_name: formData.get('college_name'), college_state: formData.get('college_state'),
+                university: formData.get('university'), edu_type: formData.get('edu_type'),
+                department: formData.get('department')
+            };
+            const selectedEventsData = [];
+            selectedEvents.forEach(id => {
+                const ev = eventData.find(e => e.id === id);
+                const eventReg = {
+                    event_id: id, name: ev.name, fee: ev.registration_fee,
+                    team_name: formData.get(`team_name_${id}`) || '',
+                    members: [], responses: {}
+                };
+                const mNames = formData.getAll(`mem_name_${id}[]`);
+                const mMetas = formData.getAll(`mem_meta_${id}[]`);
+                mNames.forEach((n, idx) => { eventReg.members.push({ name: n, meta: mMetas[idx] }); });
+                selectedEventsData.push(eventReg);
+            });
+            if (totalFee > 0 && rzpKey) { initiateRazorpay(studentDetails, selectedEventsData); }
+            else { submitFinalData(studentDetails, selectedEventsData); }
+        }
+
+        async function initiateRazorpay(student, events) {
+            const eventIds = events.map(e => e.event_id);
+            try {
+                const orderResp = await fetch('/em/api/techfest/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ techfest_id: techfestId, event_ids: eventIds })
+                });
+                const orderData = await orderResp.json();
+                if (!orderData.success) {
+                    return Swal.fire('Error', orderData.message || 'Failed to create payment order', 'error');
+                }
+
+                const options = {
+                    "key": orderData.key, 
+                    "amount": orderData.amount, 
+                    "currency": "INR",
+                    "name": "Pragati Tech Fest", 
+                    "description": "Event Registration Fee",
+                    "order_id": orderData.order_id,
+                    "handler": function (response) {
+                        submitFinalData(student, events, {
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+                    },
+                    "prefill": { "name": student.name, "email": student.email, "contact": student.mobile },
+                    "theme": { "color": "#6366f1" }
+                };
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } catch (e) {
+                Swal.fire('Error', 'An error occurred while initiating payment.', 'error');
+            }
+        }
+
+        async function submitFinalData(student, events, payment = null) {
+            Swal.showLoading();
+            const resp = await fetch('/em/api/techfest/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ techfest_id: techfestId, student_details: student, selected_events: events, payment_details: payment })
+            });
+            const result = await resp.json();
+            if (result.success) {
+                localStorage.removeItem(`tf_reg_${techfestId}`);
+                document.getElementById('success-reg-id').textContent = '#' + result.reg_id;
+                document.getElementById('ticket-qr-container').innerHTML = `<img src="/em/api/qr/${result.reg_id}" style="width: 200px; height: 200px; background: white; padding: 10px; border-radius: 8px;">`;
+                nextStep(5, true);
+                Swal.fire('Success', 'You are registered!', 'success');
+            } else { Swal.fire('Error', result.message || 'Registration failed', 'error'); }
+        }
+
+        window.onload = () => {
+            restoreProgress();
+            if (!localStorage.getItem(`tf_reg_${techfestId}`)) { toggleSpoorthyUI(); updateDepts(); }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="card glass" style="width: 100%; max-width: 450px; padding: 2.5rem;">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Welcome Back</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Roll Number or Email</label>
+                <input type="text" id="roll" placeholder="e.g. 22CS101 or club@admin.com" required>
+            </div>
+            <div class="form-group">
+                <label id="dobLabel">Date of Birth or Password</label>
+                <input type="password" id="dob" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">
+                Sign In
+            </button>
+        </form>
+        <p style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            Use your Sphoorthy Engineering College credentials to login.
+        </p>
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1); border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--tf-text-muted);">
+                <strong>External Student?</strong><br>
+                You don't need a dashboard account. Use the event registration link shared with you to participate.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('roll').addEventListener('input', function() {
+    const val = this.value;
+    const trimmedVal = val.trim();
+    
+    // Auto-capitalize ONLY for roll numbers (which typically start with digits/year)
+    // Emails (for admins) should maintain their casing.
+    if (/^\d/.test(trimmedVal)) {
+        this.value = val.toUpperCase();
+    }
+    
+    const dobInput = document.getElementById('dob');
+    const dobLabel = document.getElementById('dobLabel');
+
+    if (trimmedVal === '') {
+        dobLabel.innerText = 'Date of Birth or Password';
+        dobInput.type = 'password';
+    } else if (trimmedVal.includes('@') || /^[a-zA-Z]+$/.test(trimmedVal)) {
+        // Contains @ or is purely letters -> Password
+        dobLabel.innerText = 'Password';
+        dobInput.type = 'password';
+    } else {
+        // Likely a roll number -> Date of Birth
+        dobLabel.innerText = 'Date of Birth';
+        dobInput.type = 'date';
+    }
+});
+
+document.getElementById('loginForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const roll_number = document.getElementById('roll').value.trim();
+    const dob = document.getElementById('dob').value;
+    
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({roll_number, dob})
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            const role = data.user?.role || '';
+            if (role === 'evaluator') {
+                window.location.href = '/em/evaluator/dashboard';
+            } else if (role === 'super_admin' || role === 'event_manager' || role === 'event_admin' || role.endsWith('_admin')) {
+                window.location.href = '/admin';
+            } else {
+                window.location.href = '/';
+            }
+        } else {
+            alert(data.message || 'Login failed. Please verify your credentials.');
+        }
+    } catch (err) {
+        console.error("Login Error:", err);
+        alert('A network error occurred. Please try again.');
+    }
+}
+</script>
+{% endblock %}

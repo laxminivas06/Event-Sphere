@@ -1,0 +1,493 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --sidebar-width: 280px;
+    }
+    
+    .dashboard-layout {
+        display: flex;
+        min-height: calc(100vh - 80px);
+        background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent),
+                    radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent);
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+        width: var(--sidebar-width);
+        background: rgba(10, 10, 20, 0.4);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 2.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 80px);
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        border: 1px solid transparent;
+        cursor: pointer;
+        margin-bottom: 0.25rem;
+    }
+
+    .nav-item i {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+    }
+
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .nav-item.active {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--primary);
+        border-color: rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Content Area */
+    .main-content {
+        flex: 1;
+        padding: 2.5rem;
+    }
+
+    /* Professional Mobile Responsiveness */
+    @media (max-width: 1024px) {
+        .dashboard-layout { flex-direction: column; }
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            top: 0;
+            padding: 1rem;
+            flex-direction: row;
+            overflow-x: auto;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .nav-item { white-space: nowrap; margin-bottom: 0; }
+        .main-content { padding: 1.5rem 1rem; }
+    }
+
+    .glass {
+        position: relative;
+        overflow-x: auto !important;
+    }
+    .glass::-webkit-scrollbar { height: 6px; }
+    .glass::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+    }
+</style>
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div style="margin-bottom: 2rem;">
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Main Menu</p>
+            <a href="/admin" class="nav-item">
+                <i class="fas fa-tools"></i>
+                <span>Clubs Setup & Config</span>
+            </a>
+            <a href="/super/approvals" class="nav-item active">
+                <i class="fas fa-check-circle"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="/super/master" class="nav-item">
+                <i class="fas fa-database"></i>
+                <span>Master DB</span>
+            </a>
+        </div>
+
+        <div>
+            <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15rem; color: var(--primary); margin-left: 1rem; margin-bottom: 1rem; font-weight: 700;">Governance</p>
+            <a href="/super/registry" class="nav-item">
+                <i class="fas fa-folder-open"></i>
+                <span>Institutional Registry</span>
+            </a>
+            <a href="/admin/contacts" class="nav-item">
+                <i class="fas fa-address-book"></i>
+                <span>Contacts</span>
+            </a>
+            <a href="/super/settings" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Global Settings</span>
+            </a>
+            <div class="nav-item" onclick="location.reload()">
+                <i class="fas fa-sync-alt"></i>
+                <span>Refresh</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header style="margin-bottom: 2rem;">
+            <h1>Office Bearer <span style="color: var(--primary)">Requests</span></h1>
+            <p style="color: var(--text-muted)">Review and approve new club office bearers.</p>
+        </header>
+
+        {% if ob_requests %}
+        <div class="glass" style="border-radius: 24px; padding: 1rem; margin-bottom: 3rem;">
+            <table>
+                <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <th>Club</th>
+                        <th>Member Name</th>
+                        <th>Proposed Role</th>
+                        <th style="text-align: center;">Decision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in ob_requests %}
+                    {% if req.status == 'pending' %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.02);">
+                        <td style="padding: 1.25rem;">
+                            <div style="font-weight: 600;">{{ req.club_name }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ req.club_id }}</div>
+                        </td>
+                        <td><div style="font-weight: 600;">{{ req.name }}</div></td>
+                        <td><div style="color: #e2e8f0;">{{ req.role }}</div></td>
+                        <td style="text-align: center;">
+                            <button onclick="actionBearerRequest('{{ req.id }}', 'approve')" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-color: var(--success); color: var(--success); margin-right:0.5rem;"><i class="fas fa-check"></i></button>
+                            <button onclick="actionBearerRequest('{{ req.id }}', 'reject')" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-color: #ef4444; color: #ef4444;"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <header style="margin-bottom: 2rem;">
+            <h1>Event <span style="color: var(--primary)">Approvals</span></h1>
+            <p style="color: var(--text-muted)">Review proposed events or financial reports</p>
+        </header>
+
+        <div class="glass" style="border-radius: 24px; padding: 1rem;">
+            <table>
+                <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <th>Originating Club</th>
+                        <th>Event Details</th>
+                        <th>Status Matrix</th>
+                        <th style="text-align: center;">Decision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in events %}
+                    {% if e.event_status in ['pending', 'approved'] or e.approved %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.02);">
+                        <td style="padding: 1.25rem;">
+                            <div style="font-weight:600; font-size: 0.9rem;">{{ e.club_id|upper }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">{{ e.title }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ e.date }} &bull; {{ e.venue }}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                {% if e.approved or e.event_status == 'approved' %}
+                                    <span class="badge badge-success" style="font-size: 0.6rem;">STRUCTURE OK</span>
+                                {% else %}
+                                    <span class="badge badge-warning" style="font-size: 0.6rem;">PENDING PLAN</span>
+                                {% endif %}
+                                
+                                {% if e.report and not e.report_approved %}
+                                    <span class="badge" style="background: var(--primary); color: white; font-size: 0.6rem;">REPORT REVIEW</span>
+                                {% elif e.report and e.report_approved %}
+                                    <span class="badge badge-success" style="font-size: 0.6rem;">FINALIZED</span>
+                                {% endif %}
+
+                                {% if e.deletion_requested %}
+                                    <span class="badge" style="background: #ef4444; color: white; font-size: 0.6rem;">DELETE REQUEST</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <button onclick="viewEvent('{{ e.id }}')" class="btn btn-outline" style="padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.75rem;">
+                                Review Files
+                            </button>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- View Event Modal -->
+<div id="viewEventModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card glass" style="width: 100%; max-width: 600px; padding: 2.5rem; max-height: 90vh; overflow-y: auto;">
+        <h3>Review Event Data</h3>
+
+        <div style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+            <p><strong>Title:</strong> <span id="vEvtTitle"></span></p>
+            <p><strong>Description:</strong> <span id="vEvtDesc"></span></p>
+            <p><strong>Date, Time & Venue:</strong> <span id="vEvtDate"></span> <span id="vEvtTime"></span> at <span id="vEvtVenue"></span></p>
+            <p><strong>Event Type:</strong> <span id="vEvtType" style="text-transform: capitalize;"></span> <span id="vEvtTeamSize" style="display:none;font-size:0.9em;color:var(--text-muted);">(Team Size: <span id="vEvtTeamSizeVal"></span>)</span></p>
+            <p><strong>Payment Type:</strong> <span id="vEvtPay" style="text-transform: capitalize;"></span></p>
+            <p id="vEvtFeeData" style="display: none;"><strong>Fee:</strong> ₹<span id="vEvtFee"></span></p>
+        </div>
+
+        <div id="vEvtReportSection" style="display: none; margin-top: 1.5rem; background: rgba(255,193,7,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,193,7,0.3);">
+            <h4 style="color: var(--warning); margin-bottom: 0.5rem;">Event Report Uploaded</h4>
+            <p>A report has been submitted for this event. Review it to allow the club to create subsequent events.</p>
+            <button id="vEvtReportBtn" onclick="openSuperReportModal()" class="btn btn-outline" style="margin-top: 0.5rem;">&#128269; View Report</button>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+            <button type="button" class="btn btn-outline" onclick="toggleModal('viewEventModal', false)">Close</button>
+            <button type="button" id="vEvtRejectBtn" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; display: none;">Reject Event</button>
+            <button type="button" id="vEvtApproveReportBtn" class="btn" style="background: var(--success); color: white; display: none;">Approve Report</button>
+            
+            <button type="button" id="vEvtApproveDeleteBtn" class="btn" style="background: #ef4444; color: white; display: none;">Approve Deletion</button>
+            <button type="button" id="vEvtRejectDeleteBtn" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); display: none;">Reject Deletion</button>
+
+            <button type="button" id="vEvtApproveBtn" class="btn btn-primary" style="display: none;">Approve Event</button>
+        </div>
+    </div>
+</div>
+
+<!-- Super Admin Report Viewer Modal -->
+<div id="superReportModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:2000; justify-content:center; align-items:center; padding:1rem; backdrop-filter:blur(8px);">
+    <div style="width:100%; max-width:920px; max-height:94vh; background:#1a1a2e; border:1px solid rgba(139,92,246,0.3); border-radius:20px; box-shadow:0 25px 80px rgba(0,0,0,0.7); display:flex; flex-direction:column; overflow:hidden;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:1.25rem 1.75rem; border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0;">
+            <h3 id="superReportTitle" style="margin:0; font-size:1rem;">&#128196; Report</h3>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+                <a id="superReportDownload" href="#" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.85rem; text-decoration:none;">Download</a>
+                <button onclick="closeSuperReportModal()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#10005;</button>
+            </div>
+        </div>
+        <div style="padding:1rem 1.5rem 1.5rem; flex:1; overflow:auto;">
+            <div id="superReportContainer" style="width:100%; min-height:68vh;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleModal(id, show) {
+        document.getElementById(id).style.display = show ? 'flex' : 'none';
+    }
+
+    // Embed current events data nicely securely
+    const eventsData = {{ events | tojson | safe }};
+
+    function viewEvent(eventId) {
+        const e = eventsData.find(x => String(x.id) === String(eventId));
+        if (!e) return;
+
+        document.getElementById('vEvtTitle').innerText = e.title;
+        document.getElementById('vEvtDesc').innerText = e.description || 'N/A';
+        document.getElementById('vEvtDate').innerText = e.date;
+        document.getElementById('vEvtTime').innerText = e.time || '';
+        document.getElementById('vEvtVenue').innerText = e.venue;
+        document.getElementById('vEvtType').innerText = e.event_type || 'individual';
+        document.getElementById('vEvtPay').innerText = e.payment_type || 'free';
+
+        if (e.event_type === 'team' && e.team_size) {
+            document.getElementById('vEvtTeamSize').style.display = 'inline';
+            document.getElementById('vEvtTeamSizeVal').innerText = e.team_size;
+        } else {
+            document.getElementById('vEvtTeamSize').style.display = 'none';
+        }
+
+        if (e.payment_type === 'paid') {
+            document.getElementById('vEvtFeeData').style.display = 'block';
+            document.getElementById('vEvtFee').innerText = e.fee || '0';
+        } else {
+            document.getElementById('vEvtFeeData').style.display = 'none';
+        }
+
+        const approveBtn = document.getElementById('vEvtApproveBtn');
+        const rejectBtn = document.getElementById('vEvtRejectBtn');
+        const approveDeleteBtn = document.getElementById('vEvtApproveDeleteBtn');
+        const rejectDeleteBtn = document.getElementById('vEvtRejectDeleteBtn');
+
+        if (e.deletion_requested) {
+            approveDeleteBtn.style.display = 'block';
+            rejectDeleteBtn.style.display = 'block';
+            approveBtn.style.display = 'none';
+            rejectBtn.style.display = 'none';
+            
+            approveDeleteBtn.onclick = () => approveDeletion(e.club_id, e.id);
+            rejectDeleteBtn.onclick = () => rejectDeletion(e.club_id, e.id);
+        } else {
+            approveDeleteBtn.style.display = 'none';
+            rejectDeleteBtn.style.display = 'none';
+            
+            if (e.approved || e.event_status === 'approved') {
+                approveBtn.style.display = 'none';
+                rejectBtn.style.display = 'none';
+            } else {
+                approveBtn.style.display = 'block';
+                rejectBtn.style.display = 'block';
+                approveBtn.onclick = () => approveEvent(e.club_id, e.id);
+                rejectBtn.onclick = () => rejectEvent(e.club_id, e.id);
+            }
+        }
+
+        const reportSection = document.getElementById('vEvtReportSection');
+        const approveReportBtn = document.getElementById('vEvtApproveReportBtn');
+
+        if (e.report) {
+            window._superReportEvent = e;
+            reportSection.style.display = 'block';
+            if (e.report_approved || e.deletion_requested) {
+                approveReportBtn.style.display = 'none';
+            } else {
+                approveReportBtn.style.display = 'block';
+                approveReportBtn.onclick = () => approveReport(e.club_id, e.id);
+            }
+        } else {
+            window._superReportEvent = null;
+            reportSection.style.display = 'none';
+            approveReportBtn.style.display = 'none';
+        }
+
+        toggleModal('viewEventModal', true);
+    }
+
+    async function actionBearerRequest(reqId, action) {
+        if (!confirm(`Are you sure you want to ${action} this request?`)) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch('/api/office_bearers/action', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf
+            },
+            body: JSON.stringify({ id: reqId, action: action })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            alert(`Request ${action}d successfully!`);
+            location.reload();
+        } else {
+            alert(data.message || `Failed to ${action} request`);
+        }
+    }
+
+    async function approveEvent(clubId, eventId) {
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/events/approve/${clubId}/${eventId}`, { 
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+        });
+        if (res.ok) {
+            alert("Event structure approved!");
+            location.reload();
+        } else {
+            alert("Failed to approve event.");
+        }
+    }
+
+    async function rejectEvent(clubId, eventId) {
+        if (!confirm("Are you sure you want to reject this event? It will be sent back to Draft.")) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/events/reject/${clubId}/${eventId}`, { 
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+        });
+        if (res.ok) {
+            alert("Event rejected and sent to Draft.");
+            location.reload();
+        } else {
+            alert("Failed to reject event.");
+        }
+    }
+
+    async function approveReport(clubId, eventId) {
+        if (!confirm("Approve this event report and finalized its registry?")) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/events/approve_report/${clubId}/${eventId}`, { 
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+        });
+        if (res.ok) {
+            alert("Report approved! The club can now create new events.");
+            location.reload();
+        } else {
+            alert("Failed to approve report.");
+        }
+    }
+
+    async function approveDeletion(clubId, eventId) {
+        if (!confirm("Approve deletion? This will move the event to history/backup.")) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/events/approve_deletion/${clubId}/${eventId}`, { 
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+        });
+        if (res.ok) {
+            alert("Deletion approved. Event moved to history.");
+            location.reload();
+        } else {
+            alert("Failed to approve deletion.");
+        }
+    }
+
+    async function rejectDeletion(clubId, eventId) {
+        if (!confirm("Reject deletion request? This will restore the event to Live status.")) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/events/reject_deletion/${clubId}/${eventId}`, { 
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+        });
+        if (res.ok) {
+            alert("Deletion request rejected. Event is back to Live.");
+            location.reload();
+        } else {
+            alert("Failed to reject deletion.");
+        }
+    }
+
+    function openSuperReportModal() {
+        const e = window._superReportEvent;
+        if (!e || !e.report) return;
+
+        const slug = e.title.toLowerCase().replace(/[\W_]+/g, '_').replace(/^_+|_+$/g, '');
+        const reportUrl = `/static/uploads/clubs/${e.club_id}/events/${slug}/reports/${e.report}`;
+        const ext = e.report.split('.').pop().toLowerCase();
+
+        document.getElementById('superReportTitle').textContent = `\u{1F4C4} Report \u2014 ${e.title}`;
+        const dlBtn = document.getElementById('superReportDownload');
+        dlBtn.href = reportUrl;
+        dlBtn.setAttribute('download', e.report);
+
+        const container = document.getElementById('superReportContainer');
+        if (ext === 'pdf') {
+            container.innerHTML = `<embed src="${reportUrl}" type="application/pdf" style="width:100%;height:70vh;border-radius:10px;display:block;">`;
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
+            container.innerHTML = `<img src="${reportUrl}" alt="Report" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px;display:block;">`;
+        } else {
+            container.innerHTML = `<div style="text-align:center;padding:3rem;color:rgba(255,255,255,0.5);"><div style="font-size:3rem;margin-bottom:0.75rem;">&#128196;</div><p style="color:#fff;font-weight:600;">Preview not available</p><p>Use the Download button to open this file.</p></div>`;
+        }
+
+        document.getElementById('superReportModal').style.display = 'flex';
+    }
+
+    function closeSuperReportModal() {
+        document.getElementById('superReportModal').style.display = 'none';
+        document.getElementById('superReportContainer').innerHTML = '';
+    }
+</script>
+{% endblock %}

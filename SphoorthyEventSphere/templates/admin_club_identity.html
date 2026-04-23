@@ -1,0 +1,455 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --sidebar-width: 280px;
+    }
+
+    .dashboard-layout {
+        display: flex;
+        min-height: calc(100vh - 80px);
+        background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent),
+            radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent);
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+        width: var(--sidebar-width);
+        background: rgba(10, 10, 20, 0.4);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 2.5rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        position: sticky;
+        top: 80px;
+        height: min(100vh - 80px, 800px);
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+
+    .nav-item i {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+    }
+
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .nav-item.active {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--primary);
+        border-color: rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Content Area */
+    .main-content {
+        flex: 1;
+        padding: 2.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-layout {
+            flex-direction: column;
+        }
+
+        .sidebar {
+            width: 100%;
+            height: auto;
+            flex-direction: row;
+            overflow-x: auto;
+            position: sticky;
+            top: 0;
+            padding: 1rem;
+            z-index: 1001;
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item {
+            padding: 0.8rem 1rem;
+            white-space: nowrap;
+        }
+
+        .nav-item span {
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+
+        .main-content {
+            padding: 1.5rem 1rem;
+        }
+    }
+</style>
+
+<div class="dashboard-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div style="margin-bottom: 2rem; padding: 0 0.5rem;">
+            <h2 style="font-size: 1.2rem; color: #fff; letter-spacing: 0.05em;">CLUB<span
+                    style="color: var(--primary)">HUB</span></h2>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Admin Control Center</p>
+        </div>
+
+        <a class="nav-item" href="/admin/club/{{ club.id }}">
+            <i class="fas fa-th-large"></i> <span>Overview</span>
+        </a>
+        <a class="nav-item" href="/admin/events/{{ club.id }}">
+            <i class="fas fa-calendar-alt"></i> <span>Event Registry</span>
+        </a>
+        <a class="nav-item" href="/admin/bulk-email/{{ club.id }}">
+            <i class="fas fa-paper-plane"></i> <span>Communications</span>
+        </a>
+        <a class="nav-item" href="/admin/finance/{{ club.id }}">
+            <i class="fas fa-wallet"></i> <span>Finance Hub</span>
+        </a>
+        <a class="nav-item" href="/admin/club/{{ club.id }}#eventhub">
+            <i class="fas fa-ticket-alt"></i> <span>Event Hub</span>
+        </a>
+        <a class="nav-item active" href="/admin/identity/{{ club.id }}">
+            <i class="fas fa-id-card"></i> <span>Club Identity</span>
+        </a>
+        <a class="nav-item" href="/admin/leaderboard/{{ club.id }}">
+            <i class="fas fa-trophy"></i> <span>Top Attendees</span>
+        </a>
+        <a class="nav-item" href="/admin/elections/{{ club.id }}">
+            <i class="fas fa-vote-yea"></i> <span>Elections Zone</span>
+        </a>
+        <a class="nav-item" href="/admin/reports/{{ club.id }}">
+            <i class="fas fa-archive"></i> <span>Academic Year Reports</span>
+        </a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header style="margin-bottom: 3rem;">
+            <h2 style="font-size: 2rem;">Club <span style="color: var(--primary)">Profile</span></h2>
+            <p style="color: var(--text-muted)">Manage how your club appears to the campus community.</p>
+        </header>
+
+        <form id="profileForm" enctype="multipart/form-data">
+            <!-- Visual Branding -->
+            <div class="glass" style="padding: 2.5rem; border-radius: 28px; margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 2rem; display:flex; align-items:center; gap:0.8rem;"><i
+                        class="fas fa-paint-brush" style="color:var(--primary);"></i> Visual Branding</h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3rem;">
+                    <div
+                        style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; text-align: center; background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 20px;">
+                        <div
+                            style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 3px solid var(--primary); background: #000;">
+                            <img id="logoPreview" src="/static/uploads/clubs/{{ club.id }}/details/{{ club.logo }}"
+                                style="width:100%; height:100%; object-fit:cover;">
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">Club Logo</h4>
+                            <label class="btn btn-outline"
+                                style="cursor: pointer; padding: 0.5rem 1rem; font-size: 0.8rem;">
+                                Change Logo <input type="file" name="logo" style="display:none;"
+                                    onchange="previewImage(this, 'logoPreview')">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div
+                        style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; text-align: center; background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 20px;">
+                        <div
+                            style="width: 100%; height: 120px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #000;">
+                            <img id="coverPreview"
+                                src="/static/uploads/clubs/{{ club.id }}/details/{{ club.cover_image }}"
+                                style="width:100%; height:100%; object-fit:cover;">
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">Cover Image</h4>
+                            <label class="btn btn-outline"
+                                style="cursor: pointer; padding: 0.5rem 1rem; font-size: 0.8rem;">
+                                Change Image <input type="file" name="cover_image" style="display:none;"
+                                    onchange="previewImage(this, 'coverPreview')">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Office Bearers Section -->
+            <div class="glass" style="padding: 2.5rem; border-radius: 28px; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                    <h3 style="display:flex; align-items:center; gap:0.8rem;"><i class="fas fa-users"
+                            style="color:var(--primary);"></i> Office Bearers</h3>
+                    <button type="button" class="btn btn-outline" onclick="addBearer()"
+                        style="padding: 0.5rem 1.2rem; font-size: 0.8rem;">+ Add Member</button>
+                </div>
+                <div id="bearersList"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    {% for b in club.bearers %}
+                    <div class="bearer-card glass"
+                        style="padding:1.5rem; border-radius:20px; position:relative; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+                        <button type="button" onclick="this.parentElement.remove()"
+                            style="position:absolute; top:1rem; right:1rem; background:none; border:none; color:#ff4444; cursor:pointer;"><i
+                                class="fas fa-trash"></i></button>
+                        <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                            <div style="display:flex; gap:1.2rem; align-items:center;">
+                                <div
+                                    style="width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.05); overflow:hidden; border:2px solid var(--primary);">
+                                    <img id="bearer-preview-{{ loop.index0 }}"
+                                        src="{% if b.photo %}/static/uploads/clubs/{{ club.id }}/office_bearers/{{ b.photo }}{% else %}https://ui-avatars.com/api/?name={{ b.name|urlencode }}&background=6366f1&color=fff{% endif %}"
+                                        style="width:100%; height:100%; object-fit:cover;">
+                                </div>
+                                <label class="btn btn-outline"
+                                    style="font-size:0.65rem; padding:0.3rem 0.6rem; cursor:pointer;">
+                                    Change <input type="file" name="bearer_photos" style="display:none;"
+                                        onchange="previewBearer(this, 'bearer-preview-{{ loop.index0 }}')">
+                                </label>
+                                <input type="hidden" name="existing_bearer_photos" value="{{ b.photo }}">
+                            </div>
+                            <div style="display:grid; gap:0.8rem;">
+                                <input type="text" name="bearer_names" placeholder="Name" value="{{ b.name }}"
+                                    required style="font-weight:600;">
+                                <input type="text" name="bearer_roles" placeholder="Role (e.g. Secretary)"
+                                    value="{{ b.role }}" required>
+                                <input type="text" name="bearer_phones" placeholder="Phone" value="{{ b.phone }}"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Office Bearer Requests Section -->
+            <div class="glass" style="padding: 2.5rem; border-radius: 28px; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                    <h3 style="display:flex; align-items:center; gap:0.8rem;"><i class="fas fa-user-plus"
+                            style="color:var(--primary);"></i> Office Bearer Requests</h3>
+                    <button type="button" class="btn btn-outline" onclick="toggleModal('requestBearerModal', true)"
+                        style="padding: 0.5rem 1.2rem; font-size: 0.8rem;"><i class="fas fa-paper-plane"></i>
+                        Request New Bearer</button>
+                </div>
+
+                {% if ob_requests %}
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <th style="padding: 1rem; color: var(--text-muted);">Name</th>
+                                <th style="padding: 1rem; color: var(--text-muted);">Role</th>
+                                <th style="padding: 1rem; color: var(--text-muted);">Submitted</th>
+                                <th style="padding: 1rem; color: var(--text-muted);">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in ob_requests %}
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <td style="padding: 1rem; color:#fff; font-weight:600;">{{ req.name }}</td>
+                                <td style="padding: 1rem; color:#e2e8f0;">{{ req.role }}</td>
+                                <td style="padding: 1rem; color:var(--text-muted);">{{ req.timestamp }}</td>
+                                <td style="padding: 1rem;">
+                                    {% if req.status == 'pending' %}
+                                    <span class="badge"
+                                        style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; padding: 0.4rem 0.8rem; border-radius: 8px;">Pending
+                                        Approval</span>
+                                    {% elif req.status == 'approved' %}
+                                    <span class="badge"
+                                        style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 0.4rem 0.8rem; border-radius: 8px;">Approved</span>
+                                    {% elif req.status == 'rejected' %}
+                                    <span class="badge"
+                                        style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 0.4rem 0.8rem; border-radius: 8px;">Rejected</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p style="color:var(--text-muted); text-align:center;">No pending requests.</p>
+                {% endif %}
+            </div>
+
+            <!-- Gallery Section -->
+            <div class="glass" style="padding: 2.5rem; border-radius: 28px; margin-bottom: 3rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                    <h3 style="display:flex; align-items:center; gap:0.8rem;"><i class="fas fa-images"
+                            style="color:var(--primary);"></i> Event Gallery</h3>
+                    <label class="btn btn-primary"
+                        style="padding: 0.6rem 1.5rem; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Upload Photos <input type="file" name="gallery" multiple
+                            style="display:none;" onchange="updateGalleryPreview(this)">
+                    </label>
+                </div>
+
+                <div id="galleryGrid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;">
+                    {% for img in club.gallery %}
+                    <div class="gallery-item-wrapper"
+                        style="position: relative; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                        <img src="/static/uploads/clubs/{{ club.id }}/gallery/{{ img }}"
+                            style="width:100%; height:100%; object-fit:cover;">
+                        <button type="button" onclick="removeGalleryImage('{{ img }}')"
+                            style="position:absolute; top:8px; right:8px; background:rgba(239, 68, 68, 0.9); border:none; color:white; width:28px; height:28px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div
+                style="display: flex; justify-content: flex-end; gap: 1.5rem; background: rgba(0,0,0,0.2); padding: 1.5rem 2.5rem; border-radius: 20px;">
+                <button type="button" class="btn btn-outline" onclick="location.reload()"
+                    style="padding: 0.8rem 2rem;">Discard Changes</button>
+                <button type="submit" class="btn btn-primary"
+                    style="padding: 0.8rem 3rem; border-radius: 12px;">Save Profile Updates</button>
+            </div>
+        </form>
+    </main>
+</div>
+
+<div id="requestBearerModal"
+    style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; padding:2rem;">
+    <div class="card glass" style="width: 100%; max-width: 500px; padding: 3rem; border-radius: 32px;">
+        <h3 style="margin-bottom: 1.5rem; text-align: center;">Request New Office Bearer</h3>
+        <p style="color: var(--text-muted); text-align: center; margin-bottom: 2rem;">System Admin approval required
+            before member is added.</p>
+        <form id="requestBearerForm">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Member
+                    Name</label>
+                <input type="text" name="name" class="glass"
+                    style="width:100%; padding:0.8rem; border-radius:10px; color:#fff;" required>
+            </div>
+            <div style="margin-bottom: 2rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-size:0.85rem; color:var(--text-muted);">Role /
+                    Designation</label>
+                <input type="text" name="role" class="glass"
+                    style="width:100%; padding:0.8rem; border-radius:10px; color:#fff;" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-outline" onclick="toggleModal('requestBearerModal', false)"
+                    style="flex:1;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="flex:2;">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleModal(id, show) {
+        document.getElementById(id).style.display = show ? 'flex' : 'none';
+        document.body.style.overflow = show ? 'hidden' : 'auto';
+    }
+
+    function previewImage(input, previewId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => document.getElementById(previewId).src = e.target.result;
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function previewBearer(input, previewId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => document.getElementById(previewId).src = e.target.result;
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    document.getElementById('profileForm').onsubmit = async (ev) => {
+        ev.preventDefault();
+        const btn = ev.target.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.innerText = 'Saving...';
+
+        const formData = new FormData(ev.target);
+        formData.append('id', '{{ club.id }}');
+
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch('/api/clubs/update', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+            alert('Club settings updated successfully!');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Update failed');
+            btn.disabled = false; btn.innerText = 'Save Profile Updates';
+        }
+    };
+
+    if (document.getElementById('requestBearerForm')) {
+        document.getElementById('requestBearerForm').onsubmit = async (ev) => {
+            ev.preventDefault();
+            const btn = ev.target.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerText = 'Submitting...';
+
+            const formData = new FormData(ev.target);
+            formData.append('club_id', '{{ club.id }}');
+
+            const csrf = document.querySelector('meta[name="csrf-token"]').content;
+            const res = await fetch('/api/office_bearers/request', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: formData });
+            const data = await res.json();
+
+            if (data.success) {
+                alert('Request submitted successfully!');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert(data.message || 'Request failed');
+                btn.disabled = false; btn.innerText = 'Submit Request';
+            }
+        };
+    }
+
+    async function removeGalleryImage(imageName) {
+        if (!confirm("Remove this image?")) return;
+        const formData = new FormData();
+        formData.append('id', '{{ club.id }}');
+        formData.append('remove_gallery_image', imageName);
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch('/api/clubs/update', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: formData });
+        if (res.ok) location.reload();
+    }
+
+    function addBearer() {
+        const list = document.getElementById('bearersList');
+        const idx = 'new_' + Date.now();
+        const div = document.createElement('div');
+        div.className = 'bearer-card glass';
+        div.style = 'padding:1.5rem; border-radius:20px; position:relative; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);';
+        div.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position:absolute; top:1rem; right:1rem; background:none; border:none; color:#ff4444; cursor:pointer;"><i class="fas fa-trash"></i></button>
+            <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                <div style="display:flex; gap:1.2rem; align-items:center;">
+                    <div style="width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.05); overflow:hidden; border:2px solid var(--primary);">
+                        <img id="bearer-preview-${idx}" src="https://ui-avatars.com/api/?name=New&background=6366f1&color=fff" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <label class="btn btn-outline" style="font-size:0.65rem; padding:0.3rem 0.6rem; cursor:pointer;">
+                        Add Photo <input type="file" name="bearer_photos" style="display:none;" onchange="previewBearer(this, 'bearer-preview-${idx}')">
+                    </label>
+                </div>
+                <div style="display:grid; gap:0.8rem;">
+                    <input type="text" name="bearer_names" placeholder="Name" required style="font-weight:600;">
+                    <input type="text" name="bearer_roles" placeholder="Role" required>
+                    <input type="text" name="bearer_phones" placeholder="Phone" required>
+                </div>
+            </div>
+        `;
+        list.appendChild(div);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,912 @@
+{% extends "layout.html" %}
+{% block content %}
+<style>
+:root{--em-purple:#8b5cf6;--em-indigo:#6366f1;--em-pink:#ec4899;--em-teal:#14b8a6;}
+.reg-container{max-width:600px;margin:3rem auto;padding:2.5rem;background:rgba(30,27,75,.8);border:1px solid rgba(99,102,241,.25);border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+.reg-header{text-align:center;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px dashed rgba(255,255,255,.1);}
+.form-em{display:flex;flex-direction:column;gap:1.25rem;}
+.form-group{display:flex;flex-direction:column;gap:0.5rem;}
+.form-em label{color:var(--text-muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;}
+.form-em input,.form-em textarea{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:1rem;color:#fff;font-size:1rem;outline:none;transition:.2s;width:100%;box-sizing:border-box;}
+.form-em input:focus,.form-em textarea:focus{border-color:var(--em-indigo);background:rgba(99,102,241,.08);}
+.form-em input[readonly]{opacity:0.6;cursor:not-allowed;background:rgba(0,0,0,0.2);}
+.btn-primary-em{width:100%;padding:1.15rem;border-radius:14px;border:none;background:linear-gradient(135deg,var(--em-indigo),var(--em-purple));color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;transition:.25s;margin-top:1rem;letter-spacing:.02em;}
+.btn-primary-em:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,.4);}
+.btn-primary-em:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.order-summary{background:rgba(255,255,255,.03);padding:1.5rem;border-radius:16px;margin-bottom:2rem;border:1px solid rgba(255,255,255,.05);}
+.summary-row{display:flex;justify-content:space-between;margin-bottom:0.75rem;font-size:0.95rem;color:rgba(255,255,255,.8);}
+.summary-total{display:flex;justify-content:space-between;margin-top:1rem;padding-top:1rem;border-top:1px dashed rgba(255,255,255,.1);font-weight:700;font-size:1.2rem;color:#fff;}
+#payStatus{padding:1rem;border-radius:12px;font-size:.9rem;font-weight:500;display:none;margin-top:1rem;text-align:center;}
+.member-input-row{display:flex;gap:.5rem;align-items:center;}
+.member-input-row input{flex:1;}
+.member-input-row button{padding:.75rem 1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;color:#f87171;cursor:pointer;font-size:.85rem;flex-shrink:0;}
+</style>
+
+<div class="reg-container">
+  <div class="reg-header">
+    <h2 style="font-size:1.8rem;margin-bottom:0.5rem;color:#fff;">
+      {% if event.event_category == 'hackathon' %}
+      🚀 Hackathon Registration
+      {% else %}
+      Complete your Registration
+      {% endif %}
+    </h2>
+    <p style="color:var(--em-indigo);font-weight:600;font-size:1.1rem;margin:0;">{{ event.title }}</p>
+  </div>
+
+  <div class="order-summary">
+    <div class="summary-row">
+      <span>Date &amp; Time</span>
+      <span>{{ event.date }} {{ event.time }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Venue</span>
+      <span>{{ event.venue }}</span>
+    </div>
+    {% if event.event_category == 'hackathon' %}
+    <div class="summary-row">
+      <span>Team Size</span>
+      <span>{{ event.min_team_size or 1 }}–{{ event.max_team_size or 5 }} members</span>
+    </div>
+    {% else %}
+    <div class="summary-row" style="margin-top:1.25rem;">
+      <span>Ticket Type</span>
+      <span>{{ 'Paid Ticket' if event.event_type == 'paid' else 'Free Entry' }}</span>
+    </div>
+    <div class="summary-total">
+      <span>Total Amount</span>
+      <span>{{ '₹' ~ event.ticket_price if event.event_type == 'paid' else 'FREE' }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════ HACKATHON MODE ══════════════ -->
+  {% if event.event_category == 'hackathon' %}
+
+  <div style="padding:.85rem 1.25rem;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:14px;margin-bottom:1.5rem;font-size:.84rem;color:var(--em-purple);">
+    <i class="fas fa-rocket" style="margin-right:.4rem;"></i>
+    This is a <strong>hackathon</strong>. Register as a team ({{ event.min_team_size or 1 }}–{{ event.max_team_size or 5 }} members).
+  </div>
+
+  {% if user_team %}
+  <!-- Already in a team -->
+  <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:14px;padding:1.5rem;text-align:center;">
+    <div style="font-size:1.5rem;margin-bottom:.5rem;">✅</div>
+    <div style="font-weight:700;font-size:1rem;margin-bottom:.2rem;">You're in team &ldquo;{{ user_team.team_name }}&rdquo;</div>
+    <div style="font-size:.8rem;color:rgba(255,255,255,.4);margin-bottom:1rem;">You cannot register twice for the same hackathon.</div>
+    <a href="/em/hackathon/{{ event.id }}/submit" style="display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;background:linear-gradient(135deg,var(--em-indigo),var(--em-purple));border-radius:12px;color:#fff;font-weight:700;text-decoration:none;">
+      <i class="fas fa-upload"></i> Submit Your Project
+    </a>
+  </div>
+
+  {% else %}
+  <!-- Team Registration Form -->
+  {% if event.event_category == 'hackathon' %}
+  <form class="form-em" id="hackTeamForm" oninput="saveProgress()">
+    <div class="form-group">
+      <label>Team Name *</label>
+      <input type="text" id="teamName" placeholder="e.g. Team Nova" required>
+    </div>
+    ... (rest of the hackathon form) ...
+  </form>
+  {% else %}
+  <form class="form-em" id="regForm" oninput="saveProgress()">
+    ... (rest of the regular form) ...
+  </form>
+  {% endif %}
+
+    <div class="form-group" style="padding:1.5rem; background:rgba(255,255,255,0.03); border-radius:16px; border:1px solid rgba(255,255,255,0.05);">
+    <div class="form-group" style="padding:1.5rem; background:rgba(255,255,255,0.03); border-radius:16px; border:1px solid rgba(255,255,255,0.05);">
+      <label style="color:var(--em-indigo); font-weight:700; margin-bottom:1rem; display:block;">Team Leader Details</label>
+      
+      {% if event.allow_external %}
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label style="font-size:0.75rem;">Are you from Sphoorthy Engineering College? *</label>
+        <div style="display:flex; gap:1.5rem; margin-top:0.5rem;">
+          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.85rem;">
+            <input type="radio" name="leader_type" value="spoorthy" onchange="toggleLeaderUI()"> Yes
+          </label>
+          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.85rem;">
+            <input type="radio" name="leader_type" value="external" checked onchange="toggleLeaderUI()"> No, Other College
+          </label>
+        </div>
+      </div>
+      {% endif %}
+
+      <div id="leaderSpoorthyUI" style="{{ 'display:none;' if not user and event.allow_external else '' }}">
+        {% if not user %}
+        <div style="padding:1.25rem; background:rgba(99,102,241,0.08); border-radius:12px; border:1px dashed var(--em-indigo); text-align:center;">
+          <p style="font-size:0.8rem; margin-bottom:0.8rem;">Sphoorthy students must log in to proceed as a leader.</p>
+          <a href="/login" class="btn-primary-em" style="display:inline-block; text-decoration:none; padding:0.6rem 1.5rem; font-size:0.9rem;">Login Now</a>
+        </div>
+        {% else %}
+        <div id="leaderDetails" style="padding:0.75rem; background:rgba(16,185,129,0.05); border-radius:10px;">
+          <div style="font-weight:600; color:#10b981; font-size:0.85rem;">{{ user.name }}</div>
+          <div style="font-size:0.75rem; opacity:0.7;">{{ user.roll_number }} • {{ user.department }}</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div id="leaderExternalUI" style="display:flex; gap:0.75rem; flex-direction:column;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group"><label style="font-size:0.7rem;">Full Name *</label><input type="text" id="leaderNameExt" placeholder="Name"></div>
+          <div class="form-group"><label style="font-size:0.7rem;">Student ID / Roll No. *</label><input type="text" id="leaderIDExt" placeholder="ID Number"></div>
+        </div>
+        <div class="form-group"><label style="font-size:0.7rem;">College Name *</label><input type="text" id="leaderCollegeExt" placeholder="Your College Name"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-group"><label style="font-size:0.7rem;">Email Address *</label><input type="email" id="leaderEmailExt" placeholder="Email Address"></div>
+          <div class="form-group"><label style="font-size:0.7rem;">WhatsApp Number *</label><input type="text" id="leaderPhoneExt" placeholder="Phone Number"></div>
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.7rem;">Branch / Department *</label>
+          <select id="leaderBranchExt" class="form-control" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.6rem; color:#fff; width:100%; outline:none;" onchange="checkOtherBranch('leader')">
+            <option value="">Select Branch</option>
+            <option value="CSE">Computer Science (CSE)</option>
+            <option value="AI & ML">AI & ML</option>
+            <option value="Data Science">Data Science</option>
+            <option value="Cyber Security">Cyber Security</option>
+            <option value="ECE">Electronics (ECE)</option>
+            <option value="EEE">Electrical (EEE)</option>
+            <option value="Mechanical">Mechanical</option>
+            <option value="Civil">Civil</option>
+            <option value="MBA/Business">MBA/Business</option>
+            <option value="Others">Others (Type below)</option>
+          </select>
+          <input type="text" id="leaderBranchOther" placeholder="Type your branch name" style="display:none; margin-top:0.5rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.6rem; color:#fff; width:100%; outline:none;">
+        </div>
+        <button type="button" onclick="confirmExternalLeader()" class="btn-primary-em" style="margin-top:0.5rem; padding:0.75rem;">Confirm My Details</button>
+      </div>
+
+      <div id="leaderDetails" style="margin-top:1rem; display:none; padding:1rem; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div id="leaderNameDisplay" style="font-weight:700; color:#10b981;"></div>
+            <div id="leaderDeptDisplay" style="font-size:0.8rem; opacity:0.7;"></div>
+          </div>
+          <button type="button" onclick="resetLeader()" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;"><i class="fas fa-edit"></i> Edit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group" id="memberSection" style="display:none;">
+      <label>Other Members <span style="font-weight:400; text-transform:none; font-size:.75rem; color:rgba(255,255,255,0.35);">(enter roll number &amp; DOB)</span></label>
+      <div id="memberList" style="display:flex; flex-direction:column; gap:1rem;"></div>
+      <button type="button" onclick="addMemberRow()" style="background:rgba(99,102,241,.08); border:1px dashed rgba(99,102,241,.3); border-radius:10px; padding:.65rem 1.25rem; color:var(--em-indigo); font-size:.85rem; cursor:pointer; margin-top:.5rem;">
+        <i class="fas fa-plus" style="margin-right:.4rem;"></i> Add Member
+      </button>
+      <div style="font-size:.72rem; color:rgba(255,255,255,0.3); text-align:center; margin-top:.5rem;">
+        Max {{ event.max_team_size or 5 }} members total (including leader)
+      </div>
+    </div>
+
+    <div id="hackStatus" style="display:none; padding:.85rem 1rem; border-radius:12px; font-size:.85rem;"></div>
+
+    <button class="btn-primary-em" id="hackRegBtn" onclick="registerTeam()" style="display:none;">
+      <i class="fas fa-users" style="margin-right:.5rem;"></i> Confirm & Proceed to Payment
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- ══════════════ REGULAR MODE ══════════════ -->
+  {% else %}
+  <div class="form-em">
+    {% if not user and event.allow_external %}
+    <div class="form-group" style="margin-bottom:1.5rem; background:rgba(255,255,255,0.03); padding:1.25rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);">
+      <label style="font-size:0.85rem; font-weight:700; color:var(--em-indigo); margin-bottom:1rem; display:block;">Institution Selection</label>
+      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Are you from Sphoorthy Engineering College?</p>
+      <div style="display:flex; gap:2rem;">
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+          <input type="radio" name="is_spoorthy_reg" value="yes" onchange="toggleRegUI()"> Yes
+        </label>
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+          <input type="radio" name="is_spoorthy_reg" value="no" checked onchange="toggleRegUI()"> No, Other College
+        </label>
+      </div>
+      
+      <div id="regLoginBox" style="display:none; margin-top:1.5rem; padding:1rem; background:rgba(99,102,241,0.08); border-radius:12px; border:1px dashed var(--em-indigo); text-align:center;">
+        <p style="font-size:0.8rem; margin-bottom:0.8rem;">Sphoorthy students must log in to proceed.</p>
+        <a href="/login" class="btn-primary-em" style="display:inline-block; text-decoration:none; padding:0.6rem 1.5rem; font-size:0.9rem;">Login Now</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div id="regFormFields" style="{{ '' if not user and event.allow_external else '' }}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="regName" value="{{ user.name if user else '' }}" {{ 'readonly' if user else 'required' }} placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label>{{ 'Roll Number' if not event.allow_external else 'Roll Number / Student ID' }} *</label>
+          <input type="text" id="regRoll" value="{{ user.roll_number if user else '' }}" {{ 'readonly' if user else 'required' }} placeholder="College ID number">
+        </div>
+      </div>
+      {% if event.allow_external %}
+      <div class="form-group" id="regCollegeGroup" style="{{ 'display:none;' if user else '' }}">
+        <label>College / Institution Name *</label>
+        <input type="text" id="regCollege" value="{{ 'Sphoorthy Engineering College' if user else '' }}" required placeholder="Enter your college name">
+      </div>
+      <div class="form-group" id="regBranchGroup" style="{{ 'display:none;' if user else '' }}">
+        <label>Branch / Department *</label>
+        <select id="regBranch" class="form-control" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.6rem; color:#fff; width:100%; outline:none;" onchange="checkOtherBranch('regular')">
+          <option value="">Select Branch</option>
+          <option value="CSE">Computer Science (CSE)</option>
+          <option value="AI & ML">AI & ML</option>
+          <option value="Data Science">Data Science</option>
+          <option value="Cyber Security">Cyber Security</option>
+          <option value="ECE">Electronics (ECE)</option>
+          <option value="EEE">Electrical (EEE)</option>
+          <option value="Mechanical">Mechanical</option>
+          <option value="Civil">Civil</option>
+          <option value="MBA/Business">MBA/Business</option>
+          <option value="Others">Others (Type below)</option>
+        </select>
+        <input type="text" id="regBranchOther" placeholder="Type your branch name" style="display:none; margin-top:0.5rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.6rem; color:#fff; width:100%; outline:none;">
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" id="regEmail" value="{{ user.email if user else '' }}" placeholder="Enter active email" required>
+      </div>
+      <div class="form-group">
+        <label>Phone Number *</label>
+        <input type="text" id="regPhone" value="{{ user.phone if user else '' }}" placeholder="Enter WhatsApp number" required>
+      </div>
+      <button class="btn-primary-em" id="proceedBtn" onclick="submitRegistration()">
+        {% if event.event_type == 'free' %}
+        <i class="fas fa-check-circle" style="margin-right:0.5rem;"></i> Confirm Registration
+        {% else %}
+        <i class="fas fa-lock" style="margin-right:0.5rem;"></i> Proceed to Secure Payment
+        {% endif %}
+      </button>
+    </div>
+    <div id="payStatus"></div>
+    <a href="/em/events/{{ event.id }}" style="display:block;text-align:center;margin-top:1rem;color:var(--text-muted);text-decoration:none;font-size:0.95rem;transition:0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color=''">
+      <i class="fas fa-arrow-left" style="margin-right:0.4rem;"></i> Cancel &amp; Return
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% if razorpay_key and event.event_type == 'paid' %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+{% endif %}
+
+<script>
+const EVENT_ID   = '{{ event.id }}';
+const RZPAY_KEY  = '{{ razorpay_key or "" }}';
+const USER_NAME  = '{{ user.name if user else "" }}';
+const MAX_MEMBERS = {{ event.max_team_size or 5 }};
+const MIN_MEMBERS = {{ event.min_team_size or 1 }};
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
+
+// ── Hackathon UI Helpers ─────────────────────────────────────────────────────
+function toggleLeaderUI() {
+  const type = document.querySelector('input[name="leader_type"]:checked')?.value;
+  const spoorthyUI = document.getElementById('leaderSpoorthyUI');
+  const externalUI = document.getElementById('leaderExternalUI');
+  if (type === 'external') {
+    spoorthyUI.style.display = 'none';
+    externalUI.style.display = 'flex';
+  } else {
+    spoorthyUI.style.display = 'block';
+    externalUI.style.display = 'none';
+  }
+}
+
+function checkOtherBranch(role, idx = null) {
+  const select = role === 'leader' ? document.getElementById('leaderBranchExt') : document.getElementById(`member-branch-ext-${idx}`);
+  const otherInput = role === 'leader' ? document.getElementById('leaderBranchOther') : document.getElementById(`member-branch-other-${idx}`);
+  if (select.value === 'Others') {
+    otherInput.style.display = 'block';
+    otherInput.required = true;
+  } else {
+    otherInput.style.display = 'none';
+    otherInput.required = false;
+  }
+}
+
+function confirmExternalLeader() {
+  const name = document.getElementById('leaderNameExt').value.trim();
+  const roll = document.getElementById('leaderIDExt').value.trim();
+  const college = document.getElementById('leaderCollegeExt').value.trim();
+  const email = document.getElementById('leaderEmailExt').value.trim();
+  const phone = document.getElementById('leaderPhoneExt').value.trim();
+  const branchSelect = document.getElementById('leaderBranchExt');
+  let branch = branchSelect.value;
+  
+  if (branch === 'Others') {
+    branch = document.getElementById('leaderBranchOther').value.trim();
+  }
+
+  if (!name || !roll || !college || !email || !phone || !branch) {
+    alert('Please fill in all leader details including Branch.');
+    return;
+  }
+
+  leaderData = {
+    name,
+    roll_number: roll,
+    email,
+    phone,
+    department: branch,
+    year: 'N/A',
+    college
+  };
+
+  document.getElementById('leaderDetails').style.display = 'block';
+  document.getElementById('leaderNameDisplay').textContent = name;
+  document.getElementById('leaderDeptDisplay').textContent = `${branch} • ${college}`;
+  document.getElementById('leaderExternalUI').style.display = 'none';
+  document.getElementById('memberSection').style.display = 'block';
+  document.getElementById('hackRegBtn').style.display = 'block';
+  
+  const radioGroup = document.querySelector('input[name="leader_type"]')?.closest('.form-group');
+  if (radioGroup) radioGroup.style.display = 'none';
+}
+
+function resetLeader() {
+  leaderData = null;
+  document.getElementById('leaderDetails').style.display = 'none';
+  document.getElementById('leaderSpoorthyUI').style.display = 'block';
+  document.getElementById('leaderFetchBtn').style.display = 'block';
+  document.getElementById('leaderRoll').readOnly = false;
+  document.getElementById('leaderDOB').readOnly = false;
+  document.getElementById('leaderRoll').value = '';
+  document.getElementById('leaderDOB').value = '';
+  document.getElementById('memberSection').style.display = 'none';
+  document.getElementById('hackRegBtn').style.display = 'none';
+  
+  const radioGroup = document.querySelector('input[name="leader_type"]')?.closest('.form-group');
+  if (radioGroup) radioGroup.style.display = 'block';
+  
+  toggleLeaderUI();
+}
+
+function toggleRegUI() {
+  const type = document.querySelector('input[name="is_spoorthy_reg"]:checked')?.value;
+  const loginBox = document.getElementById('regLoginBox');
+  const formFields = document.getElementById('regFormFields');
+  const collegeGroup = document.getElementById('regCollegeGroup');
+
+  if (type === 'yes') {
+    loginBox.style.display = 'block';
+    formFields.style.display = 'none';
+  } else {
+    loginBox.style.display = 'none';
+    formFields.style.display = 'block';
+    if (collegeGroup) collegeGroup.style.display = 'block';
+  }
+}
+
+// ── Regular event helpers ────────────────────────────────────────────────────
+function showStatus(msg, type) {
+  const el = document.getElementById('payStatus');
+  el.className = 'pay-status ' + type;
+  el.style.display = 'block';
+  el.innerHTML = msg;
+  if (type === 'success') {
+    el.style.background = 'rgba(16,185,129,.15)';
+    el.style.color = '#10b981';
+    el.style.border = '1px solid rgba(16,185,129,.3)';
+  } else {
+    el.style.background = 'rgba(239,68,68,.12)';
+    el.style.color = '#f87171';
+    el.style.border = '1px solid rgba(239,68,68,.25)';
+  }
+}
+
+async function submitRegistration() {
+  const email = document.getElementById('regEmail').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const name  = document.getElementById('regName').value.trim();
+  const roll  = document.getElementById('regRoll').value.trim();
+  const college = document.getElementById('regCollege')?.value.trim() || '';
+  const branchSelect = document.getElementById('regBranch');
+  let branch = branchSelect ? branchSelect.value : '';
+  
+  if (branch === 'Others') {
+    branch = document.getElementById('regBranchOther').value.trim();
+  }
+
+  if (!email || !phone || !name || !roll) {
+    showStatus('❌ Please fill in all required fields.', 'error');
+    return;
+  }
+  
+  const payload = { event_id: EVENT_ID, email, phone, name, roll, college, department: branch };
+
+  {% if event.event_type == 'free' %}
+  await registerFree(payload);
+  {% else %}
+  await startPayment(payload);
+  {% endif %}
+}
+
+async function registerFree(payload) {
+  const btn = document.getElementById('proceedBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  const r = await fetch('/em/api/register/free', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  if (d.success) {
+    showStatus('✅ Registration Successful! Redirecting...', 'success');
+    setTimeout(() => location.href = '/em/ticket/' + d.ticket_id, 1500);
+  } else {
+    showStatus('❌ ' + (d.message || 'Registration failed'), 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Registration';
+  }
+}
+
+async function startPayment(payload) {
+  if (!RZPAY_KEY) { showStatus('❌ Payment gateway not configured.', 'error'); return; }
+  const btn = document.getElementById('proceedBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Securing payment...';
+  const r = await fetch('/em/api/payment/create-order', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  if (!d.success) {
+    showStatus('❌ ' + (d.message || 'Could not initiate payment'), 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-lock"></i> Proceed to Secure Payment';
+    return;
+  }
+  const options = {
+    key: d.key, amount: d.amount, currency: 'INR',
+    name: 'College Events', description: d.event_title, order_id: d.order_id,
+    prefill: { name: USER_NAME, email, contact: phone },
+    theme: { color: '#6366f1' },
+    handler: async function(resp) {
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying Payment...';
+      const vr = await fetch('/em/api/payment/verify', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+        body: JSON.stringify({
+          razorpay_payment_id: resp.razorpay_payment_id,
+          razorpay_order_id: resp.razorpay_order_id,
+          razorpay_signature: resp.razorpay_signature,
+          ...payload
+        })
+      });
+      const vd = await vr.json();
+      if (vd.success) {
+        showStatus('🎉 Payment Successful! Redirecting...', 'success');
+        setTimeout(() => location.href = '/em/ticket/' + vd.ticket_id, 1500);
+      } else {
+        showStatus('❌ ' + (vd.message || 'Verification failed'), 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-redo"></i> Retry Payment';
+      }
+    },
+    modal: { ondismiss: function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-lock"></i> Proceed to Secure Payment';
+    }}
+  };
+  new Razorpay(options).open();
+}
+
+// ── Hackathon team helpers ───────────────────────────────────────────────────
+let memberCount = 0;
+let leaderData = null;
+const teamMembers = [];
+
+async function lookupStudent(role, idx = null) {
+  const rollInput = role === 'leader' ? document.getElementById('leaderRoll') : document.getElementById(`member-roll-${idx}`);
+  const dobInput  = role === 'leader' ? document.getElementById('leaderDOB') : document.getElementById(`member-dob-${idx}`);
+  const fetchBtn  = role === 'leader' ? document.getElementById('leaderFetchBtn') : document.getElementById(`member-fetch-${idx}`);
+  
+  const roll = rollInput.value.trim();
+  const dob  = dobInput.value.trim();
+  
+  if (!roll || !dob) {
+    alert('Please enter both Roll Number and Date of Birth.');
+    return;
+  }
+  
+  fetchBtn.disabled = true;
+  fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
+  
+  try {
+    const r = await fetch(`/em/api/student-lookup?roll=${roll}&dob=${dob}`);
+    const d = await r.json();
+    
+    if (d.success) {
+      if (role === 'leader') {
+        leaderData = d.student;
+        document.getElementById('leaderDetails').style.display = 'block';
+        document.getElementById('leaderNameDisplay').textContent = d.student.name;
+        document.getElementById('leaderDeptDisplay').textContent = `${d.student.department} - ${d.student.year} Year`;
+        document.getElementById('memberSection').style.display = 'block';
+        document.getElementById('hackRegBtn').style.display = 'block';
+        fetchBtn.style.display = 'none';
+        rollInput.readOnly = true;
+        dobInput.readOnly = true;
+      } else {
+        const nameDisplay = document.getElementById(`member-name-display-${idx}`);
+        const detailsDiv  = document.getElementById(`member-details-${idx}`);
+        const row = document.getElementById(`member-row-${idx}`);
+        
+        nameDisplay.textContent = d.student.name;
+        detailsDiv.style.display = 'block';
+        fetchBtn.style.display = 'none';
+        rollInput.readOnly = true;
+        dobInput.readOnly = true;
+        
+        teamMembers[idx] = d.student;
+      }
+    } else {
+      alert(d.message || 'Student not found.');
+    }
+  } catch (err) {
+    alert('Error looking up student details.');
+  } finally {
+    fetchBtn.disabled = false;
+    fetchBtn.innerHTML = role === 'leader' ? 'Fetch Leader Details' : 'Fetch Details';
+  }
+}
+
+function addMemberRow() {
+  if (memberCount + 1 >= MAX_MEMBERS) {
+    alert(`Maximum ${MAX_MEMBERS} members allowed (including leader).`);
+    return;
+  }
+  memberCount++;
+  const idx = memberCount;
+  const list = document.getElementById('memberList');
+  const row = document.createElement('div');
+  row.className = 'form-group';
+  row.id = `member-row-${idx}`;
+  row.style.cssText = "padding:1.25rem; background:rgba(255,255,255,0.02); border-radius:16px; border:1px solid rgba(255,255,255,0.04);";
+  
+  const allowExternal = {{ 'true' if event.allow_external else 'false' }};
+  
+  let memberHtml = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <label style="font-size:0.75rem; color:var(--em-purple);">Member #${idx}</label>
+      <button type="button" onclick="removeMember(${idx})" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:0.8rem;">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  `;
+
+  if (allowExternal) {
+    memberHtml += `
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label style="font-size:0.65rem;">Sphoorthy Student? *</label>
+        <div style="display:flex; gap:1.25rem; margin-top:0.25rem;">
+          <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.75rem;">
+            <input type="radio" name="member_type_${idx}" value="spoorthy" checked onchange="toggleMemberUI(${idx})"> Yes
+          </label>
+          <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.75rem;">
+            <input type="radio" name="member_type_${idx}" value="external" onchange="toggleMemberUI(${idx})"> No
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
+  memberHtml += `
+    <div id="member-spoorthy-ui-${idx}">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+        <div class="form-group">
+          <label style="font-size:0.65rem;">Roll Number</label>
+          <input type="text" id="member-roll-${idx}" placeholder="Roll Number">
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.65rem;">Date of Birth</label>
+          <input type="date" id="member-dob-${idx}">
+        </div>
+      </div>
+      <button type="button" onclick="lookupStudent('member', ${idx})" id="member-fetch-${idx}" style="padding:0.5rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; cursor:pointer; width:100%; font-size:0.8rem;">
+        Fetch Details
+      </button>
+    </div>
+
+    <div id="member-external-ui-${idx}" style="display:none; flex-direction:column; gap:0.75rem;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+        <div class="form-group"><label style="font-size:0.65rem;">Full Name *</label><input type="text" id="member-name-ext-${idx}" placeholder="Name"></div>
+        <div class="form-group"><label style="font-size:0.65rem;">Student ID / Roll No. *</label><input type="text" id="member-id-ext-${idx}" placeholder="ID"></div>
+      </div>
+      <div class="form-group"><label style="font-size:0.65rem;">College Name *</label><input type="text" id="member-college-ext-${idx}" placeholder="College"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+        <div class="form-group"><label style="font-size:0.65rem;">Email Address *</label><input type="email" id="member-email-ext-${idx}" placeholder="Email"></div>
+        <div class="form-group"><label style="font-size:0.65rem;">WhatsApp Number *</label><input type="text" id="member-phone-ext-${idx}" placeholder="Phone"></div>
+      </div>
+      <div class="form-group">
+        <label style="font-size:0.65rem;">Branch / Department *</label>
+        <select id="member-branch-ext-${idx}" class="form-control" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem; color:#fff; width:100%; outline:none;" onchange="checkOtherBranch('member', ${idx})">
+          <option value="">Select Branch</option>
+          <option value="CSE">Computer Science (CSE)</option>
+          <option value="AI & ML">AI & ML</option>
+          <option value="Data Science">Data Science</option>
+          <option value="Cyber Security">Cyber Security</option>
+          <option value="ECE">Electronics (ECE)</option>
+          <option value="EEE">Electrical (EEE)</option>
+          <option value="Mechanical">Mechanical</option>
+          <option value="Civil">Civil</option>
+          <option value="MBA/Business">MBA/Business</option>
+          <option value="Others">Others (Type below)</option>
+        </select>
+        <input type="text" id="member-branch-other-${idx}" placeholder="Type branch" style="display:none; margin-top:0.5rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.5rem; color:#fff; width:100%; outline:none;">
+      </div>
+      <button type="button" onclick="confirmExternalMember(${idx})" class="btn-primary-em" style="margin-top:0.25rem; padding:0.6rem; font-size:0.85rem;">Confirm Member</button>
+    </div>
+
+    <div id="member-details-${idx}" style="margin-top:0.75rem; display:none; padding:0.75rem; background:rgba(16,185,129,0.05); border-radius:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div id="member-name-display-${idx}" style="font-weight:600; color:#10b981; font-size:0.85rem;"></div>
+          <div id="member-dept-display-${idx}" style="font-size:0.75rem; opacity:0.7;"></div>
+        </div>
+        <button type="button" onclick="resetMemberRow(${idx})" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:0.7rem;"><i class="fas fa-edit"></i> Edit</button>
+      </div>
+    </div>
+  `;
+  
+  row.innerHTML = memberHtml;
+  list.appendChild(row);
+}
+
+function toggleMemberUI(idx) {
+  const type = document.querySelector(`input[name="member_type_${idx}"]:checked`)?.value;
+  const spoorthyUI = document.getElementById(`member-spoorthy-ui-${idx}`);
+  const externalUI = document.getElementById(`member-external-ui-${idx}`);
+  if (type === 'external') {
+    spoorthyUI.style.display = 'none';
+    externalUI.style.display = 'flex';
+  } else {
+    spoorthyUI.style.display = 'block';
+    externalUI.style.display = 'none';
+  }
+}
+
+function confirmExternalMember(idx) {
+  const name = document.getElementById(`member-name-ext-${idx}`).value.trim();
+  const roll = document.getElementById(`member-id-ext-${idx}`).value.trim();
+  const college = document.getElementById(`member-college-ext-${idx}`).value.trim();
+  const email = document.getElementById(`member-email-ext-${idx}`).value.trim();
+  const phone = document.getElementById(`member-phone-ext-${idx}`).value.trim();
+  const branchSelect = document.getElementById(`member-branch-ext-${idx}`);
+  let branch = branchSelect.value;
+  
+  if (branch === 'Others') {
+    branch = document.getElementById(`member-branch-other-${idx}`).value.trim();
+  }
+
+  if (!name || !roll || !college || !email || !phone || !branch) {
+    alert('Please fill in all member details including Branch.');
+    return;
+  }
+
+  teamMembers[idx] = {
+    name,
+    roll_number: roll,
+    email,
+    phone,
+    department: branch,
+    year: 'N/A',
+    college
+  };
+
+  document.getElementById(`member-details-${idx}`).style.display = 'block';
+  document.getElementById(`member-name-display-${idx}`).textContent = name;
+  document.getElementById(`member-dept-display-${idx}`).textContent = `${branch} • ${college}`;
+  document.getElementById(`member-external-ui-${idx}`).style.display = 'none';
+  
+  const radioGroup = document.querySelector(`input[name="member_type_${idx}"]`)?.closest('.form-group');
+  if (radioGroup) radioGroup.style.display = 'none';
+}
+
+function resetMemberRow(idx) {
+  teamMembers[idx] = null;
+  document.getElementById(`member-details-${idx}`).style.display = 'none';
+  document.getElementById(`member-spoorthy-ui-${idx}`).style.display = 'block';
+  document.getElementById(`member-fetch-${idx}`).style.display = 'block';
+  document.getElementById(`member-roll-${idx}`).readOnly = false;
+  document.getElementById(`member-dob-${idx}`).readOnly = false;
+  document.getElementById(`member-roll-${idx}`).value = '';
+  document.getElementById(`member-dob-${idx}`).value = '';
+  
+  const radioGroup = document.querySelector(`input[name="member_type_${idx}"]`)?.closest('.form-group');
+  if (radioGroup) radioGroup.style.display = 'block';
+  
+  toggleMemberUI(idx);
+}
+
+function removeMember(idx) {
+  document.getElementById(`member-row-${idx}`).remove();
+  teamMembers[idx] = null;
+  memberCount--;
+}
+
+async function registerTeam() {
+  const teamName = document.getElementById('teamName')?.value.trim();
+  if (!teamName) { alert('Please enter a team name.'); return; }
+  if (!leaderData) { alert('Please fetch team leader details first.'); return; }
+
+  const finalMembers = teamMembers.filter(m => m !== null).map(m => ({
+    roll_number: m.roll_number,
+    name: m.name,
+    email: m.email || '',
+    dept: m.department,
+    year: m.year,
+    is_leader: false
+  }));
+
+  const total = finalMembers.length + 1;
+  if (total < MIN_MEMBERS) { alert(`Minimum team size is ${MIN_MEMBERS}.`); return; }
+
+  const btn = document.getElementById('hackRegBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+  // We reuse the existing registration API, but it might need to handle payment redirect
+  const r = await fetch('/em/api/hackathon/team/register', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({ 
+      event_id: EVENT_ID, 
+      team_name: teamName, 
+      members: finalMembers,
+      leader_data: leaderData
+    })
+  });
+  const d = await r.json();
+  
+  if (d.success) {
+    // If it's a paid event, we need to handle payment
+    {% if event.event_type == 'paid' %}
+      // Redirect to payment or start payment flow
+      alert('Registration initiated. Proceeding to payment...');
+      startHackathonPayment(d.team_id, leaderData.email || '');
+    {% else %}
+      alert('Registration Successful!');
+      location.href = `/em/hackathon/ticket/${d.team_id}`;
+    {% endif %}
+  } else {
+    alert(d.message || 'Registration failed');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-users"></i> Confirm & Proceed';
+  }
+}
+
+async function startHackathonPayment(teamId, email) {
+  if (!RZPAY_KEY) { alert('Payment gateway not configured.'); return; }
+  
+  const payload = { event_id: EVENT_ID, team_id: teamId, email: email };
+  const r = await fetch('/em/api/payment/create-order', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  if (!d.success) {
+    alert('Could not initiate payment: ' + (d.message || 'Unknown error'));
+    return;
+  }
+
+  const options = {
+    key: d.key, amount: d.amount, currency: 'INR',
+    name: 'College Events', description: 'Hackathon: ' + d.event_title, order_id: d.order_id,
+    prefill: { name: leaderData.name, email: email, contact: leaderData.phone },
+    theme: { color: '#6366f1' },
+    handler: async function(resp) {
+      const vr = await fetch('/em/api/hackathon/team/verify-payment', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+        body: JSON.stringify({
+          razorpay_payment_id: resp.razorpay_payment_id,
+          razorpay_order_id: resp.razorpay_order_id,
+          razorpay_signature: resp.razorpay_signature,
+          team_id: teamId
+        })
+      });
+      const vd = await vr.json();
+      if (vd.success) {
+        alert('🎉 Payment Successful! Your team registration is complete.');
+        location.href = '/em/ticket/' + teamId + '?type=hackathon';
+      } else {
+        alert('❌ Payment verification failed: ' + (vd.message || 'Unknown error'));
+      }
+    }
+  };
+  new Razorpay(options).open();
+}
+// ── Persistence ─────────────────────────────────────────────────────────────
+function saveProgress() {
+  const data = {
+    event_id: EVENT_ID,
+    teamName: document.getElementById('teamName')?.value,
+    leaderData: leaderData,
+    teamMembers: teamMembers,
+    memberCount: memberCount,
+    regName: document.getElementById('regName')?.value,
+    regRoll: document.getElementById('regRoll')?.value,
+    regEmail: document.getElementById('regEmail')?.value,
+    regPhone: document.getElementById('regPhone')?.value,
+    regCollege: document.getElementById('regCollege')?.value,
+    regBranch: document.getElementById('regBranch')?.value,
+    leaderType: document.querySelector('input[name="leader_type"]:checked')?.value,
+    spoorthyReg: document.querySelector('input[name="is_spoorthy_reg"]:checked')?.value
+  };
+  localStorage.setItem(`em_reg_${EVENT_ID}`, JSON.stringify(data));
+}
+
+function restoreProgress() {
+  const saved = localStorage.getItem(`em_reg_${EVENT_ID}`);
+  if (!saved) return;
+  const data = JSON.parse(saved);
+  
+  if (data.teamName) document.getElementById('teamName').value = data.teamName;
+  if (data.regName) document.getElementById('regName').value = data.regName;
+  if (data.regRoll) document.getElementById('regRoll').value = data.regRoll;
+  if (data.regEmail) document.getElementById('regEmail').value = data.regEmail;
+  if (data.regPhone) document.getElementById('regPhone').value = data.regPhone;
+  if (data.regCollege) document.getElementById('regCollege').value = data.regCollege;
+  if (data.regBranch) {
+    const b = document.getElementById('regBranch');
+    if (b) {
+      b.value = data.regBranch;
+      if (b.value === 'Others') {
+        document.getElementById('regBranchOther').style.display = 'block';
+      }
+    }
+  }
+
+  if (data.leaderType) {
+    const radio = document.querySelector(`input[name="leader_type"][value="${data.leaderType}"]`);
+    if (radio) { radio.checked = true; toggleLeaderUI(); }
+  }
+  
+  if (data.spoorthyReg) {
+    const radio = document.querySelector(`input[name="is_spoorthy_reg"][value="${data.spoorthyReg}"]`);
+    if (radio) { radio.checked = true; toggleRegUI(); }
+  }
+
+  if (data.leaderData) {
+    leaderData = data.leaderData;
+    document.getElementById('leaderDetails').style.display = 'block';
+    document.getElementById('leaderNameDisplay').textContent = leaderData.name;
+    document.getElementById('leaderDeptDisplay').textContent = `${leaderData.department} - ${leaderData.year} Year`;
+    if (leaderData.college) document.getElementById('leaderDeptDisplay').textContent += ` • ${leaderData.college}`;
+    document.getElementById('memberSection').style.display = 'block';
+    document.getElementById('hackRegBtn').style.display = 'block';
+    
+    // Hide inputs if leader is restored
+    if (document.getElementById('leaderExternalUI')) document.getElementById('leaderExternalUI').style.display = 'none';
+    if (document.getElementById('leaderSpoorthyUI')) document.getElementById('leaderSpoorthyUI').style.display = 'none';
+  }
+
+  if (data.teamMembers && data.teamMembers.length > 0) {
+    data.teamMembers.forEach((m, idx) => {
+      if (m) {
+        addMemberRow();
+        const curIdx = memberCount;
+        teamMembers[curIdx] = m;
+        document.getElementById(`member-details-${curIdx}`).style.display = 'block';
+        document.getElementById(`member-name-display-${curIdx}`).textContent = m.name;
+        document.getElementById(`member-dept-display-${curIdx}`).textContent = `${m.department} ${m.year != 'N/A' ? '- ' + m.year + ' Year' : ''}`;
+        if (m.college) document.getElementById(`member-dept-display-${curIdx}`).textContent += ` • ${m.college}`;
+        
+        document.getElementById(`member-spoorthy-ui-${curIdx}`).style.display = 'none';
+        document.getElementById(`member-external-ui-${curIdx}`).style.display = 'none';
+      }
+    });
+  }
+}
+
+window.addEventListener('load', restoreProgress);
+window.addEventListener('input', saveProgress);
+
+</script>
+{% endblock %}

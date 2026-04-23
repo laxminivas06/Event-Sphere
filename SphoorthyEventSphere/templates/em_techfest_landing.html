@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ techfest.title }} - Landing Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='techfest.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="techfest-body">
+    <div class="tf-container">
+        <!-- Hero Section -->
+        <section style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; padding: 2rem 0;">
+            <div class="tf-animation-fade-in">
+                <h2 style="text-transform: uppercase; letter-spacing: 0.5rem; color: var(--tf-accent); margin-bottom: 0;">Welcome to</h2>
+                <h1 style="font-size: 5rem; margin: 1rem 0; line-height: 1; background: linear-gradient(135deg, #fff, #818cf8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">{{ techfest.title }}</h1>
+                <p style="font-size: 1.5rem; color: var(--tf-text-muted); margin-bottom: 3rem;">{{ techfest.date }} | Organized by {{ techfest.organized_by or 'Sphoorthy' }}</p>
+                
+                <div style="display: flex; gap: 1.5rem; justify-content: center;">
+                    <a href="/em/techfest/{{ techfest.id }}/register" class="tf-btn tf-btn-primary" style="font-size: 1.2rem; padding: 1rem 3rem;">Register Now</a>
+                    {% if user and user.role in ['super_admin', 'event_manager', 'event_admin', 'club_admin'] %}
+                    <a href="/em/techfest/{{ techfest.id }}/hub" class="tf-btn tf-btn-outline" style="font-size: 1.2rem; padding: 1rem 2rem;">Admin Hub</a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- Poster & About Section -->
+        <section style="margin-top: 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;">
+            <div class="tf-glass-card" style="padding: 1rem; border-radius: 20px; overflow: hidden;">
+                {% if techfest.banner %}
+                <img src="/static/uploads/em/banners/{{ techfest.banner }}" alt="Event Poster" style="width: 100%; border-radius: 15px; display: block;">
+                {% else %}
+                <div style="aspect-ratio: 4/5; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; border-radius: 15px;">
+                    <i class="fas fa-image fa-4x" style="color: rgba(255,255,255,0.1);"></i>
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">About the Event</h2>
+                <p style="color: var(--tf-text-muted); line-height: 1.8; font-size: 1.1rem; margin-bottom: 2rem;">
+                    {{ techfest.description or 'Join us for a spectacular journey into the world of technology, innovation, and creativity. Pragati Tech Fest 2026 brings together the brightest minds to compete, collaborate, and celebrate the spirit of engineering.' }}
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-calendar-alt" style="color: var(--tf-primary); font-size: 1.5rem;"></i>
+                        <div>
+                            <p style="margin:0; font-weight:600;">Date</p>
+                            <p style="margin:0; font-size:0.9rem; color:var(--tf-text-muted)">{{ techfest.date }}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-map-marker-alt" style="color: var(--tf-secondary); font-size: 1.5rem;"></i>
+                        <div>
+                            <p style="margin:0; font-weight:600;">Venue</p>
+                            <p style="margin:0; font-size:0.9rem; color:var(--tf-text-muted)">{{ techfest.venue or 'College Campus' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section style="margin-top: 6rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; width: 100%;">
+            <div class="tf-glass-card" style="padding: 2.5rem; text-align: center;">
+                <div style="width: 60px; height: 60px; background: rgba(99, 102, 241, 0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fas fa-code fa-2x" style="color: var(--tf-primary);"></i>
+                </div>
+                <h3 style="margin-bottom: 1rem;">Technical Events</h3>
+                <p style="font-size: 0.9rem; color: var(--tf-text-muted); line-height: 1.6;">From Paper Presentations to Coding Challenges, showcase your technical prowess.</p>
+            </div>
+            <div class="tf-glass-card" style="padding: 2.5rem; text-align: center;">
+                <div style="width: 60px; height: 60px; background: rgba(168, 85, 247, 0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fas fa-trophy fa-2x" style="color: var(--tf-secondary);"></i>
+                </div>
+                <h3 style="margin-bottom: 1rem;">Cash Prizes</h3>
+                <p style="font-size: 0.9rem; color: var(--tf-text-muted); line-height: 1.6;">Win exciting cash prizes worth thousands across multiple categories.</p>
+            </div>
+            <div class="tf-glass-card" style="padding: 2.5rem; text-align: center;">
+                <div style="width: 60px; height: 60px; background: rgba(236, 72, 153, 0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fas fa-users fa-2x" style="color: var(--tf-accent);"></i>
+                </div>
+                <h3 style="margin-bottom: 1rem;">Networking</h3>
+                <p style="font-size: 0.9rem; color: var(--tf-text-muted); line-height: 1.6;">Connect with tech enthusiasts from across various colleges and universities.</p>
+            </div>
+        </section>
+
+        <!-- Sub-Events Section -->
+        <section style="margin-top: 6rem; margin-bottom: 6rem;">
+            <div style="text-align: center; margin-bottom: 4rem;">
+                <h2 style="font-size: 3rem;">Featured Events</h2>
+                <p style="color: var(--tf-text-muted);">Explore various competitions and workshops</p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
+                {% for ev in events %}
+                <div class="tf-glass-card" style="padding: 0; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 2rem;">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.4rem;">{{ ev.name }}</h3>
+                        <p style="color: var(--tf-text-muted); font-size: 0.95rem; line-height: 1.6; flex: 1;">{{ ev.description or 'No description available for this event.' }}</p>
+                        <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; color: #10b981; font-size: 1.2rem;">
+                                {{ 'Free Entry' if ev.payment_type == 'free' or ev.registration_fee == 0 else '₹' ~ ev.registration_fee }}
+                            </span>
+                            <span style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 20px;">
+                                {{ 'Team Event' if ev.max_team_size > 1 else 'Individual' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.02); padding: 1rem 2rem; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                        <a href="/em/techfest/{{ techfest.id }}/register" style="color: var(--tf-primary); font-weight: 600; text-decoration: none; font-size: 0.9rem;">Register to Participate →</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <footer style="text-align: center; padding: 4rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
+            <p style="color: var(--tf-text-muted);">&copy; 2026 {{ techfest.title }}. All Rights Reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>

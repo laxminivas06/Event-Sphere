@@ -1,0 +1,222 @@
+{% extends "layout.html" %}
+{% block content %}
+<style>
+:root{--em-purple:#8b5cf6;--em-indigo:#6366f1;--em-pink:#ec4899;--em-teal:#14b8a6;}
+.detail-hero{position:relative;min-height:340px;display:flex;align-items:flex-end;overflow:hidden;}
+.hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(139,92,246,.2));}
+.hero-bg img{width:100%;height:100%;object-fit:cover;opacity:.3;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,25,.98) 0%,rgba(10,10,25,.6) 50%,transparent 100%);}
+.hero-content{position:relative;z-index:2;padding:2.5rem;max-width:1100px;width:100%;}
+.cat-badge-lg{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem 1rem;border-radius:50px;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;}
+.detail-body{max-width:1100px;margin:0 auto;padding:2.5rem;display:grid;grid-template-columns:1fr 380px;gap:2.5rem;align-items:start;}
+.detail-info{}
+.detail-section{margin-bottom:2.5rem;}
+.detail-section h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;color:var(--em-indigo);margin-bottom:1.25rem;font-weight:700;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.info-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:.85rem;}
+.info-tile-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.info-tile-label{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.info-tile-value{font-size:.93rem;font-weight:600;margin-top:.15rem;}
+.desc-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:1.5rem;line-height:1.7;color:rgba(255,255,255,.8);font-size:.92rem;}
+.ticket-card{background:linear-gradient(145deg,rgba(30,27,75,.9),rgba(17,24,39,.95));border:1px solid rgba(99,102,241,.25);border-radius:24px;padding:2rem;position:sticky;top:100px;}
+.ticket-card-top{text-align:center;padding-bottom:1.5rem;border-bottom:2px dashed rgba(99,102,241,.25);margin-bottom:1.5rem;}
+.price-display{font-size:2.8rem;font-weight:900;background:linear-gradient(135deg,var(--em-indigo),var(--em-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+.price-free{font-size:2rem;font-weight:900;color:#10b981;}
+.cap-indicator{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;font-size:.82rem;}
+.cap-bar{height:6px;background:rgba(255,255,255,.1);border-radius:6px;overflow:hidden;margin-bottom:1.25rem;}
+.cap-fill{height:100%;background:linear-gradient(90deg,#10b981,#6366f1);border-radius:6px;}
+.btn-primary-em{width:100%;padding:1rem;border-radius:14px;border:none;background:linear-gradient(135deg,var(--em-indigo),var(--em-purple));color:#fff;font-size:1rem;font-weight:700;cursor:pointer;transition:.25s;letter-spacing:.02em;}
+.btn-primary-em:hover{opacity:.88;transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,.4);}
+.btn-primary-em:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-outline-em{width:100%;padding:.9rem;border-radius:14px;border:1px solid rgba(99,102,241,.4);background:none;color:var(--em-indigo);font-size:.93rem;font-weight:600;cursor:pointer;transition:.2s;text-decoration:none;display:block;text-align:center;}
+.btn-outline-em:hover{background:rgba(99,102,241,.1);}
+.registered-badge{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(20,184,166,.1));border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:1.25rem;text-align:center;margin-bottom:1.25rem;}
+.registered-badge i{font-size:2rem;color:#10b981;display:block;margin-bottom:.5rem;}
+.form-em{display:flex;flex-direction:column;gap:.75rem;margin-bottom:1.25rem;}
+.form-em input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.75rem 1rem;color:#fff;font-size:.9rem;outline:none;transition:.2s;}
+.form-em input:focus{border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.08);}
+#payStatus{padding:.75rem;border-radius:10px;font-size:.85rem;font-weight:500;display:none;margin-top:.75rem;}
+#payStatus.success{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);}
+#payStatus.error{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25);}
+@media(max-width:900px){.detail-body{grid-template-columns:1fr;}.ticket-card{position:static;}.info-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="detail-hero">
+  <div class="hero-bg">
+    {% if event.banner %}<img src="/static/uploads/em/banners/{{ event.banner }}" onerror="this.style.display='none'">{% endif %}
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    {% set cat_map={'freshers_party':('🎉','Freshers Party','cat-freshers_party'),'annual_day':('🏆','Annual Day','cat-annual_day'),'club_event':('🎭','Club Event','cat-club_event'),'other':('✨','Special','cat-other')} %}
+    {% set cat_info=cat_map.get(event.event_category,('🎭','Event','cat-other')) %}
+    <span class="cat-badge-lg cat-{{ event.event_category }}" style="background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);color:var(--em-indigo);">
+      {{ cat_info[0] }} {{ cat_info[1] }}
+    </span>
+    <h1 style="font-size:clamp(1.6rem,4vw,2.6rem);font-weight:800;margin-bottom:.75rem;line-height:1.2;">{{ event.title }}</h1>
+    {% if event.organized_by %}
+    <p style="color:rgba(255,255,255,.65);font-size:.95rem;"><i class="fas fa-users" style="margin-right:.5rem;color:var(--em-indigo);"></i>Organized by <strong style="color:#fff;">{{ event.organized_by }}</strong></p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-body">
+  <!-- Left: Info -->
+  <div class="detail-info">
+    <div class="detail-section">
+      <h3>Event Details</h3>
+      <div class="info-grid">
+        {% if event.date %}
+        <div class="info-tile">
+          <div class="info-tile-icon" style="background:rgba(99,102,241,.15);color:var(--em-indigo);"><i class="fas fa-calendar-alt"></i></div>
+          <div><div class="info-tile-label">Date</div><div class="info-tile-value">{{ event.date }}</div></div>
+        </div>
+        {% endif %}
+        {% if event.time %}
+        <div class="info-tile">
+          <div class="info-tile-icon" style="background:rgba(139,92,246,.15);color:var(--em-purple);"><i class="fas fa-clock"></i></div>
+          <div><div class="info-tile-label">Time</div><div class="info-tile-value">{{ event.time }}</div></div>
+        </div>
+        {% endif %}
+        {% if event.venue %}
+        <div class="info-tile">
+          <div class="info-tile-icon" style="background:rgba(236,72,153,.15);color:var(--em-pink);"><i class="fas fa-map-marker-alt"></i></div>
+          <div><div class="info-tile-label">Venue</div><div class="info-tile-value">{{ event.venue }}</div></div>
+        </div>
+        {% endif %}
+        {% if event.max_capacity %}
+        <div class="info-tile">
+          <div class="info-tile-icon" style="background:rgba(20,184,166,.15);color:var(--em-teal);"><i class="fas fa-users"></i></div>
+          <div>
+            <div class="info-tile-label">Capacity</div>
+            <div class="info-tile-value">{{ reg_count }} / {{ event.max_capacity }} seats</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if event.description %}
+    <div class="detail-section">
+      <h3>About this Event</h3>
+      <div class="desc-box">{{ event.description }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Back -->
+    <a href="/em/events" style="display:inline-flex;align-items:center;gap:.5rem;color:var(--text-muted);font-size:.88rem;text-decoration:none;transition:.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color=''">
+      <i class="fas fa-arrow-left"></i> Back to all events
+    </a>
+  </div>
+
+  <!-- Right: Ticket Card -->
+  <div class="ticket-card">
+    <div class="ticket-card-top">
+      <p style="color:var(--text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem;">
+        {% if event.event_category == 'hackathon' %}
+        Hackathon Registration
+        {% else %}
+        {{ 'Ticket Price' if event.event_type == 'paid' else 'Registration' }}
+        {% endif %}
+      </p>
+      {% if event.event_category == 'hackathon' %}
+      <div class="price-free">TEAM EVENT</div>
+      <p style="color:var(--text-muted);font-size:.8rem;margin-top:.35rem;">{{ event.min_team_size or 1 }}–{{ event.max_team_size or 5 }} members</p>
+      {% else %}
+      {% if event.event_type == 'paid' %}
+      <div class="price-display">₹{{ event.ticket_price }}</div>
+      <p style="color:var(--text-muted);font-size:.8rem;margin-top:.35rem;">per person</p>
+      {% else %}
+      <div class="price-free">FREE</div>
+      <p style="color:var(--text-muted);font-size:.8rem;margin-top:.35rem;">No entry fee</p>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    {% if event.max_capacity and event.event_category != 'hackathon' %}
+    <div class="cap-indicator">
+      <span style="color:var(--text-muted);font-size:.8rem;"><i class="fas fa-ticket-alt" style="margin-right:.3rem;"></i>{{ event.max_capacity|int - reg_count|int }} seats left</span>
+      <span style="color:var(--text-muted);font-size:.8rem;">{{ reg_count }}/{{ event.max_capacity }}</span>
+    </div>
+    <div class="cap-bar">
+      <div class="cap-fill" style="width:{{ [(reg_count|int / event.max_capacity|int * 100)|int, 100]|min }}%;"></div>
+    </div>
+    {% endif %}
+
+    {% if not user %}
+    <a href="/em/events/{{ event.id }}/register" class="btn-primary-em" style="display:block;text-align:center;text-decoration:none;">
+      <i class="fas fa-ticket-alt" style="margin-right:.5rem;"></i>Register Now
+    </a>
+    {% else %}
+    
+      {% if event.event_category == 'hackathon' %}
+        {% if user_team %}
+        <div class="registered-badge" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);">
+          <i class="fas fa-users" style="color:var(--em-purple);"></i>
+          <strong>Team: {{ user_team.team_name }}</strong>
+          <p style="color:var(--text-muted);font-size:.83rem;margin:.25rem 0 0;">{{ 'Setup complete' if user_team.submitted else 'Pending project submission' }}</p>
+        </div>
+          {% if event.submission_portal_enabled %}
+          <a href="/em/hackathon/{{ event.id }}/submit" class="btn-primary-em" style="display:block;text-align:center;text-decoration:none;padding:1rem;">
+            <i class="fas fa-upload" style="margin-right:.5rem;"></i>{{ 'Manage Submission' if user_team.submitted else 'Submit Project' }}
+          </a>
+          {% else %}
+          <div class="registered-badge" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);padding:1rem;margin-bottom:1.25rem;">
+            <p style="color:var(--text-muted);font-size:.83rem;margin:0;"><i class="fas fa-lock" style="margin-right:.4rem;"></i>Submission portal closed</p>
+          </div>
+          {% endif %}
+        {% else %}
+        <a href="/em/events/{{ event.id }}/register" class="btn-primary-em" style="display:block;text-align:center;text-decoration:none;">
+          <i class="fas fa-users" style="margin-right:.5rem;"></i>Register a Team
+        </a>
+        {% endif %}
+        
+        {% if event.leaderboard_enabled %}
+        <a href="/em/hackathon/{{ event.id }}/leaderboard" class="btn-outline-em" style="margin-top:.75rem;border-color:rgba(245,158,11,.4);color:var(--em-gold, #f59e0b);">
+          <i class="fas fa-trophy" style="margin-right:.5rem;"></i>View Leaderboard
+        </a>
+        {% endif %}
+
+      {% else %}
+        {% if is_registered and user_ticket %}
+        <div class="registered-badge">
+          <i class="fas fa-check-circle"></i>
+          <strong>You're Registered!</strong>
+          <p style="color:var(--text-muted);font-size:.83rem;margin:.25rem 0 0;">{{ user_ticket.ticket_id }}</p>
+        </div>
+        <a href="/em/ticket/{{ user_ticket.ticket_id }}" class="btn-primary-em" style="display:block;text-align:center;text-decoration:none;padding:1rem;">
+          <i class="fas fa-ticket-alt" style="margin-right:.5rem;"></i>View My Ticket
+        </a>
+        <a href="/em/api/ticket/{{ user_ticket.ticket_id }}/download" class="btn-outline-em" style="margin-top:.75rem;">
+          <i class="fas fa-download" style="margin-right:.5rem;"></i>Download Ticket PDF
+        </a>
+        {% else %}
+        {% if event.event_type == 'free' %}
+        <a href="/em/events/{{ event.id }}/register" class="btn-primary-em" style="display:block;text-align:center;text-decoration:none;">
+          <i class="fas fa-ticket-alt" style="margin-right:.5rem;"></i>Proceed to Register (Free)
+        </a>
+        {% else %}
+        <a href="/em/events/{{ event.id }}/register" class="btn-primary-em" style="display:block;text-align:center;text-decoration:none;">
+          <i class="fas fa-credit-card" style="margin-right:.5rem;"></i>Proceed to Pay ₹{{ event.ticket_price }}
+        </a>
+        {% endif %}
+        {% endif %}
+      {% endif %}
+
+    {% endif %}
+
+    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <div style="display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--text-muted);">
+          <i class="fas fa-shield-alt" style="color:#10b981;"></i>Secure payment via Razorpay
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--text-muted);">
+          <i class="fas fa-envelope" style="color:var(--em-indigo);"></i>QR ticket delivered by email
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--text-muted);">
+          <i class="fas fa-qrcode" style="color:var(--em-purple);"></i>Scan at venue for quick entry
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
