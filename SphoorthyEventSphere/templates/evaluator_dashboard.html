@@ -170,7 +170,7 @@
               {% if team.submitted %}
               <span style="color:#10b981; font-weight:600; font-size:.8rem;"><i class="fas fa-check-circle"></i> {{ 'Participating' if team.is_tech_fest else 'Submitted' }}</span>
               <div style="display:flex; gap:.4rem; margin-top:.4rem; flex-wrap:wrap;">
-                <button class="btn-ev btn-ev-teal" style="padding:.25rem .6rem; font-size:.7rem;" onclick='viewProject({{ team|tojson|safe }})'><i class="fas fa-eye"></i> View Details</button>
+                <button class="btn-ev btn-ev-teal" style="padding:.25rem .6rem; font-size:.7rem;" onclick="viewProjectById('{{ team.team_id }}')"><i class="fas fa-eye"></i> View Details</button>
                 {% if team.github_url %}<a href="{{ team.github_url }}" class="btn-ev btn-ev-primary" target="_blank" style="padding:.25rem .6rem; font-size:.7rem;"><i class="fab fa-github"></i> Code</a>{% endif %}
               </div>
               {% else %}
@@ -189,7 +189,7 @@
               <div style="display:flex; flex-direction:column; gap:.4rem; align-items:flex-end;">
                 {% if is_scored %}<span class="badge-scored" style="margin-bottom:.2rem;">✓ Scored</span>{% else %}<span class="badge-pending" style="margin-bottom:.2rem;">Pending</span>{% endif %}
                 {% set criteria = item.event.scoring_criteria if item.event.scoring_criteria else item.event.evaluation_criteria %}
-                <button class="btn-ev btn-ev-gold" style="padding:.4rem .8rem; font-size:.75rem; white-space:nowrap;" onclick='openScoreModal({{ team|tojson|safe }}, "{{ item.event.id }}", {{ criteria | default("") | tojson | safe }}, {{ my_score|tojson|safe if my_score else "null" }})'>
+                <button class="btn-ev btn-ev-gold" style="padding:.4rem .8rem; font-size:.75rem; white-space:nowrap;" onclick="openScoreModalById('{{ team.team_id }}')">
                   <i class="fas fa-star"></i> {{ 'Edit Score' if is_scored else 'Score Team' }}
                 </button>
               </div>
@@ -369,6 +369,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let _scoreTeam = null;
 const DEFAULT_CRITERIA = ['Innovation','Execution','Presentation','Impact','Technical Complexity'];
+
+function openScoreModalById(teamId) {
+    const team = ALL_TEAMS.find(t => t.team_id === teamId);
+    if (team) openScoreModal(team, team.event_id, team.scoring_criteria, team.my_score);
+}
+
+function viewProjectById(teamId) {
+    const team = ALL_TEAMS.find(t => t.team_id === teamId);
+    if (team) viewProject(team);
+}
 
 function openScoreModal(team, eventId, criteriaStr, existing) {
   _scoreTeam = team;

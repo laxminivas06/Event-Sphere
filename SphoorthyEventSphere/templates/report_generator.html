@@ -918,10 +918,16 @@
                     <div class="fg"><label>Venue</label><input type="text" id="ev-venue" value="{{ event.venue }}"
                             oninput="lu()"></div>
                 </div>
-                <div class="fg"><label>Faculty Coordinator</label><input type="text" id="ev-fac" value="{{ user.name }}"
-                        oninput="lu()"></div>
-                <div class="fg"><label>Resource Person</label><input type="text" id="ev-res"
-                        value="{{ event.resource_person or '' }}" placeholder="Name, Designation" oninput="lu()"></div>
+                <div class="fg"><label>Faculty Coordinator(s)</label><input type="text" id="ev-fac" value="{{ user.name }}"
+                        oninput="lu()" placeholder="Name1, Name2 (comma-separated)"><p class="hint">Separate multiple names with commas — the label auto-updates to "Faculty Coordinators".</p></div>
+                <div class="fg"><label>Resource Person Name</label><input type="text" id="ev-res"
+                        value="{{ event.resource_person or '' }}" placeholder="Full Name" oninput="lu()"></div>
+                <div class="dual-wrap">
+                    <div class="fg"><label>Designation</label><input type="text" id="ev-res-desg"
+                            placeholder="e.g., Senior Engineer" oninput="lu()"></div>
+                    <div class="fg"><label>Company / Institution</label><input type="text" id="ev-res-company"
+                            placeholder="e.g., Google, IIT Madras" oninput="lu()"></div>
+                </div>
                 <div class="dual-wrap">
                     <div class="fg"><label>Students</label><input type="number" id="ev-stu" value="{{ student_count }}"
                             oninput="lu()"></div>
@@ -933,9 +939,11 @@
 
                 <div class="hr"></div>
                 <div class="sec-title">Document Signatures</div>
-                <div class="fg"><label>Left Corner Signature</label><input type="text" id="convener-label" placeholder="e.g. Club Admin"
+                <div class="fg"><label>Left Signature Label</label><input type="text" id="convener-label" placeholder="e.g. Club Convenor"
                         oninput="lu()"></div>
-                <div class="fg"><label>Right Corner Signature</label><input type="text" id="principal-label" placeholder="e.g. Principal"
+                <div class="fg"><label>Centre Signature Label</label><input type="text" id="center-label" placeholder="e.g. Faculty Coordinator"
+                        oninput="lu()"></div>
+                <div class="fg"><label>Right Signature Label</label><input type="text" id="principal-label" placeholder="e.g. Principal"
                         oninput="lu()"></div>
             </div>
 
@@ -1114,10 +1122,9 @@
             const list = [];
             if (D.attendance[0] || D.attendance[1]) list.push('Attendance Sheet');
             if (D.photos.length) list.push(`Event Photos (${D.photos.length} photos)`);
-            if (D.posterEnc || D.poster) list.push('Event Poster');
             if (D.feedback[0] || D.feedback[1]) list.push('Participant Feedback Forms');
             if (D.circular[0] || D.circular[1]) list.push('Event Circular / Permission Letter');
-            if (!list.length) ['Attendance Sheet', 'Event Photos', 'Event Poster', 'Participant Feedback Forms', 'Event Circular / Permission Letter'].forEach(x => list.push(x));
+            if (!list.length) ['Attendance Sheet', 'Event Photos', 'Participant Feedback Forms', 'Event Circular / Permission Letter'].forEach(x => list.push(x));
             return list.map((e, i) => `<div class="enc-item"><b>${i + 1}.</b> ${xe(e)}</div>`).join('');
         }
 
@@ -1269,8 +1276,8 @@
                         <tr><td>Date of Event</td><td>${xe(v('ev-date'))}</td></tr>
                         <tr><td>Mode</td><td>${xe(v('ev-mode'))}</td></tr>
                         <tr><td>Venue</td><td>${xe(v('ev-venue'))}</td></tr>
-                        <tr><td>Faculty Co-ordinator</td><td>${xe(v('ev-fac'))}</td></tr>
-                        <tr><td>Resource Person</td><td>${xe(v('ev-res'))}</td></tr>
+                        <tr><td>${getFacLabel()}</td><td>${xe(v('ev-fac'))}</td></tr>
+                        <tr><td>Resource Person</td><td>${xe(v('ev-res'))}${v('ev-res-desg') ? ', ' + xe(v('ev-res-desg')) : ''}${v('ev-res-company') ? ' (' + xe(v('ev-res-company')) + ')' : ''}</td></tr>
                         <tr><td>No. of Students Attended</td><td>${xe(v('ev-stu'))}</td></tr>
                         <tr><td>No. of Faculty Attended</td><td>${xe(v('ev-fct'))}</td></tr>
                         <tr><td>Organized By</td><td>${xe(v('ev-club'))}</td></tr>
@@ -1311,6 +1318,12 @@
         }
 
         function makePg() { const el = document.createElement('div'); el.className = 'a4'; el.style.height = PAGE_H + 'px'; return el; }
+
+        function getFacLabel() {
+            const names = (v('ev-fac') || '').split(',').map(s => s.trim()).filter(Boolean);
+            return names.length > 1 ? 'Faculty Co-ordinators' : 'Faculty Co-ordinator';
+        }
+
         function buildCover(pgN) {
             const pg = makePg();
             const poster = D.poster ? `<img src="${D.poster}" alt="Poster">` : `<div class="c-poster-ph">← Upload Event Poster from MEDIA tab</div>`;
@@ -1320,6 +1333,7 @@
                 <div class="c-poster-zone">${poster}</div>
                 <div class="c-sig-row">
                     <div class="c-sig-block"><div class="c-sig-space"></div><div class="c-sig-line"></div><div class="c-sig-label">${xe(v('convener-label'))}</div></div>
+                    <div class="c-sig-block"><div class="c-sig-space"></div><div class="c-sig-line"></div><div class="c-sig-label">${xe(v('center-label'))}</div></div>
                     <div class="c-sig-block"><div class="c-sig-space"></div><div class="c-sig-line"></div><div class="c-sig-label">${xe(v('principal-label'))}</div></div>
                 </div>
             </div>${pftrH(pgN)}`;

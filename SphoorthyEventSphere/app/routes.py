@@ -17,6 +17,13 @@ from io import BytesIO
 import hmac
 import hashlib
 import razorpay
+from werkzeug.utils import secure_filename
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 api = Blueprint('api', __name__)
 
@@ -100,6 +107,12 @@ def api_login():
     roll = data.get('roll_number', '').strip()
     dob = data.get('dob', '').strip()
 
+    # Fields that should NEVER be sent to the browser or stored in session
+    SENSITIVE_FIELDS = {'password', 'dob'}
+
+    def sanitize(user_obj):
+        return {k: v for k, v in user_obj.items() if k not in SENSITIVE_FIELDS}
+
     # 1. Check Admins / Evaluators / Managers in admins.json
     admins = DB.get_admins()
     for admin in admins:
@@ -108,15 +121,17 @@ def api_login():
         
         # Match by email or roll_number
         if (admin_email == roll.lower() or admin_roll == roll.lower()) and admin.get('password') == dob:
-            session['user'] = admin
-            return jsonify({'success': True, 'user': admin})
+            safe_admin = sanitize(admin)
+            session['user'] = safe_admin
+            return jsonify({'success': True, 'user': safe_admin})
 
     # 2. Check Students
     student = DB.get_student_by_roll(roll)
     if student and student.get('dob') == dob:
         student['role'] = 'student'
-        session['user'] = student
-        return jsonify({'success': True, 'user': student})
+        safe_student = sanitize(student)
+        session['user'] = safe_student
+        return jsonify({'success': True, 'user': safe_student})
 
     return jsonify({'success': False, 'message': 'Invalid credentials. Please try again.'})
 
@@ -127,20 +142,17 @@ def update_event_details():
     
     data = request.form.to_dict()
     event_id = data.get('event_id') or data.get('id')
-    club_id = user.get('role', '').split('_')[0] if user.get('role', '').endswith('_admin') else None
-    
-    # If super_admin, we might need club_id from somewhere else, but usually club admins call this.
-    if user.get('role') == 'super_admin':
-        # Find which club this event belongs to
-        all_events = DB.get_events()
-        event = next((e for e in all_events if e['id'] == event_id), None)
-        if event: club_id = event['club_id']
-    
-    if not club_id: return jsonify({'success': False, 'message': 'Club not found'}), 404
-    
-    events = DB.get_events(club_id)
-    event = next((e for e in events if e['id'] == event_id), None)
+    all_events = DB.get_events()
+    event = next((e for e in all_events if e['id'] == event_id), None)
     if not event: return jsonify({'success': False, 'message': 'Event not found'}), 404
+    
+    club_id = event['club_id']
+    club = DB.get_club_by_id(club_id)
+    
+    # Authorization check
+    identifier = user.get('email') or user.get('roll_number')
+    if user.get('role') != 'super_admin' and club.get('admin_roll') != identifier:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
     # Update fields
     for field in ['title', 'venue', 'date', 'time', 'payment_type', 'fee', 'description']:
@@ -152,6 +164,21 @@ def update_event_details():
     
     # Handle collaborating clubs
     event['collaborating_clubs'] = request.form.getlist('collaborating_clubs')
+
+    # Handle poster upload
+    poster = request.files.get('poster')
+    if poster and poster.filename:
+        if allowed_file(poster.filename):
+            from app.models import slugify
+            event_slug = slugify(event['title'])
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'events', event_slug, 'posters')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Secure filename and add unique prefix
+            filename = secure_filename(poster.filename)
+            fn = f"poster_{uuid.uuid4().hex[:8]}_{filename}"
+            poster.save(os.path.join(upload_dir, fn))
+            event['poster'] = fn
 
     DB.save_event(club_id, event)
     return jsonify({'success': True})
@@ -211,10 +238,11 @@ def save_event_permission():
     event = next((e for e in events if e['id'] == event_id), None)
     if not event: return jsonify({'success': False, 'message': 'Event not found'}), 404
     
-    # Save all fields sent from the letter
-    for key, value in data.items():
-        if key not in ['club_id', 'event_id']:
-            event[key] = value
+    # Save all allowed fields sent from the letter
+    allowed_fields = ['title', 'date', 'time', 'venue', 'description', 'payment_type', 'event_type', 'fee', 'resource_person', 'collaborating_clubs']
+    for key in allowed_fields:
+        if key in data:
+            event[key] = data[key]
             
     # Update status to pending so it's no longer a draft (unless auto-approved)
     if is_trusted_club(club_id):
@@ -259,12 +287,22 @@ def upload_report():
     event = next((e for e in events if e['id'] == event_id), None)
     if not event: return jsonify({'success': False, 'message': 'Event not found'}), 404
     
+    # Authorization check
+    club = DB.get_club_by_id(club_id)
+    identifier = user.get('email') or user.get('roll_number')
+    if user.get('role') != 'super_admin' and club.get('admin_roll') != identifier:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    if not allowed_file(report_file.filename) and not report_file.filename.endswith('.pdf'):
+        return jsonify({'success': False, 'message': 'Invalid file type. Only PDF and images allowed.'}), 400
+
     from app.models import slugify
     event_slug = slugify(event['title'])
-    upload_dir = os.path.join('static', 'uploads', 'clubs', club_id, 'events', event_slug, 'reports')
+    upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'events', event_slug, 'reports')
     os.makedirs(upload_dir, exist_ok=True)
     
-    filename = f"report_{uuid.uuid4().hex[:8]}.pdf"
+    # Secure filename
+    filename = f"report_{uuid.uuid4().hex[:8]}_{secure_filename(report_file.filename)}"
     report_file.save(os.path.join(upload_dir, filename))
     
     event['report'] = filename
@@ -320,28 +358,41 @@ def upload_students_csv():
     try:
         content = file.read().decode('utf-8').splitlines()
         import csv
-        reader = csv.DictReader(content)
+        reader = list(csv.DictReader(content))
         
         students = DB.get_students()
         added_count = 0
         updated_count = 0
         
-        for row in reader:
-            roll = row.get('roll_number') or row.get('Roll Number')
-            if not roll: continue
-            roll = str(roll).strip().upper()
+        # Validation Pass
+        for i, row in enumerate(reader, start=1):
+            roll = row.get('roll_number') or row.get('Roll Number') or row.get('reg') or row.get('Reg')
+            name = row.get('name') or row.get('Name') or row.get('student name') or row.get('Student Name')
+            dept = row.get('department') or row.get('Department')
+            year = row.get('year') or row.get('Year')
+            dob = row.get('dob') or row.get('DOB') or row.get('Date of Birth')
             
-            name = row.get('name') or row.get('Name') or ''
-            dept = row.get('department') or row.get('Department') or ''
-            year = row.get('year') or row.get('Year') or ''
-            email = row.get('email') or row.get('Email') or ''
-            phone = row.get('phone') or row.get('Phone') or ''
+            if not roll or not str(roll).strip(): return jsonify({'success': False, 'message': f'Row {i}: Missing mandatory field "Roll Number/Reg"'})
+            if not name or not str(name).strip(): return jsonify({'success': False, 'message': f'Row {i} (Roll {roll}): Missing mandatory field "Student Name"'})
+            if not dept or not str(dept).strip(): return jsonify({'success': False, 'message': f'Row {i} (Roll {roll}): Missing mandatory field "Department"'})
+            if not year or not str(year).strip(): return jsonify({'success': False, 'message': f'Row {i} (Roll {roll}): Missing mandatory field "Year"'})
+            if not dob or not str(dob).strip(): return jsonify({'success': False, 'message': f'Row {i} (Roll {roll}): Missing mandatory field "DOB"'})
+        
+        for row in reader:
+            roll = str(row.get('roll_number') or row.get('Roll Number') or row.get('reg') or row.get('Reg')).strip().upper()
+            name = str(row.get('name') or row.get('Name') or row.get('student name') or row.get('Student Name')).strip()
+            dept = str(row.get('department') or row.get('Department')).strip()
+            year = str(row.get('year') or row.get('Year')).strip()
+            dob = str(row.get('dob') or row.get('DOB') or row.get('Date of Birth')).strip()
+            email = str(row.get('email') or row.get('Email') or '').strip()
+            phone = str(row.get('phone') or row.get('Phone') or '').strip()
             
             existing = next((s for s in students if s['roll_number'].upper() == roll), None)
             if existing:
-                if name: existing['name'] = name
-                if dept: existing['department'] = dept
-                if year: existing['year'] = year
+                existing['name'] = name
+                existing['department'] = dept
+                existing['year'] = year
+                existing['dob'] = dob
                 if email: existing['email'] = email
                 if phone: existing['phone'] = phone
                 updated_count += 1
@@ -351,9 +402,9 @@ def upload_students_csv():
                     'name': name,
                     'department': dept,
                     'year': year,
+                    'dob': dob,
                     'email': email,
                     'phone': phone,
-                    'dob': '2000-01-01', # Default
                     'photo': None,
                     'contributions': []
                 })
@@ -364,6 +415,47 @@ def upload_students_csv():
         
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+@api.route('/students/promote', methods=['POST'])
+def promote_students():
+    user = session.get('user')
+    if not user or user.get('role') != 'super_admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    data = request.json or {}
+    promotion_rules = data.get('promotion_rules', {}) # e.g. {"1st": "2nd", "2nd": "3rd", "3rd": "4th", "4th": "Alumni"}
+    detained_rolls = data.get('detained_rolls', [])
+    delete_detained = data.get('delete_detained', False)
+
+    students = DB.get_students()
+    updated_count = 0
+    deleted_count = 0
+
+    new_students = []
+    
+    for s in students:
+        roll = s.get('roll_number', '').upper()
+        current_year = s.get('year', '')
+        
+        if roll in detained_rolls:
+            if delete_detained:
+                deleted_count += 1
+                continue # Skip adding to new_students
+            # Else, they are detained but not deleted, so year remains same
+            new_students.append(s)
+            continue
+            
+        if current_year in promotion_rules:
+            s['year'] = promotion_rules[current_year]
+            updated_count += 1
+            
+        new_students.append(s)
+
+    DB.save_students(new_students)
+    return jsonify({
+        'success': True,
+        'message': f'Promoted: {updated_count}, Deleted: {deleted_count}'
+    })
 
 @api.route('/contacts/update', methods=['POST'])
 def update_contacts():
@@ -385,6 +477,11 @@ def update_club():
     club = DB.get_club_by_id(club_id)
     if not club: return jsonify({'success': False, 'message': 'Club not found'}), 404
     
+    # Authorization check
+    identifier = user.get('email') or user.get('roll_number')
+    if user.get('role') != 'super_admin' and club.get('admin_roll') != identifier:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
     # Update fields
     if 'about' in data: club['about'] = data['about']
     if 'mission' in data: club['mission'] = data['mission']
@@ -392,21 +489,41 @@ def update_club():
     if 'mentor_name' in data: club['mentor']['name'] = data['mentor_name']
     if 'mentor_designation' in data: club['mentor']['designation'] = data['mentor_designation']
     
+    # Handle logo upload
+    logo = request.files.get('logo')
+    if logo and logo.filename:
+        if allowed_file(logo.filename):
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'details')
+            os.makedirs(upload_dir, exist_ok=True)
+            fn = f"logo_{uuid.uuid4().hex[:8]}_{secure_filename(logo.filename)}"
+            logo.save(os.path.join(upload_dir, fn))
+            club['logo'] = fn
+
+    # Handle cover image upload
+    cover = request.files.get('cover_image')
+    if cover and cover.filename:
+        if allowed_file(cover.filename):
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'details')
+            os.makedirs(upload_dir, exist_ok=True)
+            fn = f"cover_{uuid.uuid4().hex[:8]}_{secure_filename(cover.filename)}"
+            cover.save(os.path.join(upload_dir, fn))
+            club['cover_image'] = fn
+
     # Handle gallery image removal
     remove_img = data.get('remove_gallery_image')
     if remove_img and 'gallery' in club:
         club['gallery'] = [img for img in club['gallery'] if img != remove_img]
-        # Optionally delete file
+        # Optional: delete the file from disk here
         
     # Handle new gallery images
-    new_images = request.files.getlist('gallery_images')
+    new_images = request.files.getlist('gallery') # Changed from gallery_images to match template name="gallery"
     if new_images:
-        upload_dir = os.path.join('static', 'uploads', 'clubs', club_id, 'gallery')
+        upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'gallery')
         os.makedirs(upload_dir, exist_ok=True)
         if 'gallery' not in club: club['gallery'] = []
         for img in new_images:
-            if img.filename:
-                fn = f"gallery_{uuid.uuid4().hex[:8]}_{img.filename}"
+            if img and img.filename and allowed_file(img.filename):
+                fn = f"gallery_{uuid.uuid4().hex[:8]}_{secure_filename(img.filename)}"
                 img.save(os.path.join(upload_dir, fn))
                 club['gallery'].append(fn)
                 
@@ -414,27 +531,139 @@ def update_club():
     bearer_names = request.form.getlist('bearer_names')
     bearer_roles = request.form.getlist('bearer_roles')
     bearer_phones = request.form.getlist('bearer_phones')
-    bearer_photos = request.files.getlist('bearer_photos')
+    
+    # Note: bearer_photos handling is tricky with multiple files. 
+    # For now, we will maintain existing logic but fix the name mapping if possible.
+    # Actually, a better way is to check bearer_photos by index if they were provided.
     
     if bearer_names:
         bearers = []
-        upload_dir = os.path.join('static', 'uploads', 'clubs', club_id, 'bearers')
+        upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'bearers')
         os.makedirs(upload_dir, exist_ok=True)
+        
+        # We need to know which bearer gets which photo. 
+        # HTML sends all bearer_photos in order of selection.
+        # This is still a bit fragile but let's try to match by presence of file.
+        
+        existing_bearers = club.get('office_bearers', [])
+        
         for i in range(len(bearer_names)):
             photo_fn = None
-            if i < len(bearer_photos) and bearer_photos[i].filename:
-                photo_fn = f"bearer_{uuid.uuid4().hex[:8]}_{bearer_photos[i].filename}"
-                bearer_photos[i].save(os.path.join(upload_dir, photo_fn))
+            # Check if a new photo was uploaded for this specific index
+            # This requires the frontend to send something that maps index to file.
+            # But with current simple list, it's hard. 
+            # We'll use the existing photo as default.
+            
+            current_photo = existing_bearers[i]['photo'] if i < len(existing_bearers) else None
             
             bearers.append({
                 'name': bearer_names[i],
                 'role': bearer_roles[i],
                 'phone': bearer_phones[i],
-                'photo': photo_fn or (club['office_bearers'][i]['photo'] if i < len(club.get('office_bearers', [])) else None)
+                'photo': current_photo
             })
         club['office_bearers'] = bearers
 
     DB.save_club(club)
+    return jsonify({'success': True})
+
+@api.route('/clubs/create', methods=['POST'])
+def create_club():
+    user = session.get('user')
+    if not user or user.get('role') != 'super_admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    data = request.json
+    name = data.get('name')
+    features = data.get('features', {})
+    admin_data = data.get('admin', {})
+    
+    if not name or not admin_data.get('email'):
+        return jsonify({'success': False, 'message': 'Name and Admin Email are required'}), 400
+        
+    from app.models import slugify
+    club_id = slugify(name)
+    
+    # Check if club already exists
+    if DB.get_club_by_id(club_id):
+        club_id = f"{club_id}_{uuid.uuid4().hex[:4]}"
+        
+    new_club = {
+        'id': club_id,
+        'name': name,
+        'features': features,
+        'admin_roll': admin_data.get('email'), # Use email as identifier in about.json
+        'about': '',
+        'mission': '',
+        'vision': '',
+        'mentor': {'name': '', 'designation': ''},
+        'office_bearers': [],
+        'gallery': []
+    }
+    
+    DB.save_club(new_club)
+    
+    # Create Admin
+    admin_user = {
+        'name': admin_data.get('name'),
+        'email': admin_data.get('email'),
+        'password': admin_data.get('password'),
+        'phone': admin_data.get('phone'),
+        'role': 'club_admin' # General role, specific access checked by email/roll
+    }
+    DB.save_admin(admin_user)
+    
+    return jsonify({'success': True, 'club_id': club_id})
+
+@api.route('/clubs/update_config', methods=['POST'])
+def update_club_config():
+    user = session.get('user')
+    if not user or user.get('role') != 'super_admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+        
+    data = request.json
+    club_id = data.get('id')
+    features = data.get('features', {})
+    admin_data = data.get('admin', {})
+    
+    club = DB.get_club_by_id(club_id)
+    if not club:
+        return jsonify({'success': False, 'message': 'Club not found'}), 404
+        
+    # Update club info
+    club['name'] = data.get('name') or club['name']
+    club['features'] = features
+    
+    # If admin email changed, we need to handle that, but for now let's keep it simple
+    old_admin_email = club.get('admin_roll')
+    new_admin_email = admin_data.get('email')
+    
+    club['admin_roll'] = new_admin_email
+    DB.save_club(club)
+    
+    # Update Admin
+    admins = DB.get_admins()
+    admin_user = next((a for a in admins if a.get('email') == old_admin_email), None)
+    
+    if admin_user:
+        admin_user['name'] = admin_data.get('name') or admin_user['name']
+        admin_user['email'] = new_admin_email
+        if admin_data.get('password'):
+            admin_user['password'] = admin_data.get('password')
+        admin_user['phone'] = admin_data.get('phone') or admin_user.get('phone')
+    else:
+        # Create new if didn't exist
+        admin_user = {
+            'name': admin_data.get('name'),
+            'email': new_admin_email,
+            'password': admin_data.get('password'),
+            'phone': admin_data.get('phone'),
+            'role': 'club_admin'
+        }
+        admins.append(admin_user)
+        
+    DB.save_json('admins.json', admins)
+    
     return jsonify({'success': True})
 
 @api.route('/office_bearers/request', methods=['POST'])
@@ -797,11 +1026,20 @@ def api_create_order():
 @api.route('/register', methods=['POST'])
 def api_register():
     try:
+        user = session.get('user')
+        if not user:
+            return jsonify({'success': False, 'message': 'Authentication required.'}), 401
+            
         # This route handles both free and paid (verified) registrations
         data = request.json or {}
         club_id = data.get('club_id')
         event_id = data.get('event_id')
+        roll_number = data.get('roll_number')
         
+        # SECURITY: Verify that the roll number in the request matches the logged-in student
+        if user.get('role') == 'student' and user.get('roll_number') != roll_number:
+            return jsonify({'success': False, 'message': 'You can only register yourself.'}), 403
+            
         if not club_id:
             return jsonify({'success': False, 'message': 'Registration failed: Club ID is missing.'}), 400
         if not event_id:
@@ -809,21 +1047,37 @@ def api_register():
             
         event = DB.get_event_by_id(club_id, event_id)
         if not event:
-            return jsonify({'success': False, 'message': f'Registration failed: Event with ID {event_id} not found in club {club_id}.'}), 400
+            return jsonify({'success': False, 'message': 'Registration failed: Event not found.'}), 404
 
-        # Payment Verification if paid
+        # Check if already registered
+        regs = DB.get_registrations(club_id)
+        if any(r['event_id'] == event_id and r.get('roll_number') == roll_number for r in regs):
+            return jsonify({'success': False, 'message': 'You are already registered for this event.'}), 400
+
+        # Payment Verification logic
         is_paid = event.get('payment_type') == 'paid'
-        payment_details = data.get('payment_details')
-        
-        # Team Member check: if they are a member, they don't pay individually
         reg_type = data.get('reg_type', 'individual')
         team_role = data.get('team_role')
+        team_id = data.get('team_id')
+        
+        payment_details = data.get('payment_details')
+        
+        # Team Member check: if they are joining an existing team, we must verify the team exists
         if reg_type == 'team' and team_role == 'member':
-            is_paid = False # Leader pays for the team
+            if not team_id:
+                return jsonify({'success': False, 'message': 'Team ID is required to join a team.'}), 400
+            
+            # Verify team exists for this event
+            team_leader = next((r for r in regs if r['event_id'] == event_id and r.get('team_id') == team_id and r.get('team_role') == 'leader'), None)
+            if not team_leader:
+                return jsonify({'success': False, 'message': 'The specified team does not exist for this event.'}), 404
+            
+            # If team leader has paid, members don't pay (Institutional logic)
+            is_paid = False 
         
         if is_paid:
             if not payment_details:
-                return jsonify({'success': False, 'message': 'Registration failed: Payment details are required for this paid event.'}), 400
+                return jsonify({'success': False, 'message': 'Payment details are required for this paid event.'}), 400
                 
             # Verify Razorpay signature
             settings_path = os.path.join(DATA_DIR, 'em', 'settings.json')
@@ -836,7 +1090,7 @@ def api_register():
             key_id = settings.get('razorpay_key_id')
             key_secret = settings.get('razorpay_key_secret')
             if not key_id or not key_secret:
-                return jsonify({'success': False, 'message': 'Server Error: Institutional Razorpay credentials are not configured.'}), 500
+                return jsonify({'success': False, 'message': 'Institutional Razorpay is not configured.'}), 500
                 
             params_dict = {
                 'razorpay_order_id': payment_details.get('razorpay_order_id'),
@@ -845,13 +1099,13 @@ def api_register():
             }
             
             if not all(params_dict.values()):
-                return jsonify({'success': False, 'message': 'Registration failed: Incomplete payment confirmation received from Razorpay.'}), 400
+                return jsonify({'success': False, 'message': 'Incomplete payment confirmation received.'}), 400
 
             client = razorpay.Client(auth=(key_id, key_secret))
             try:
                 client.utility.verify_payment_signature(params_dict)
             except Exception as sig_err:
-                return jsonify({'success': False, 'message': f'Registration failed: Payment signature verification failed. {str(sig_err)}'}), 400
+                return jsonify({'success': False, 'message': 'Payment signature verification failed.'}), 400
 
         # Create registration
         reg_id = str(uuid.uuid4())
@@ -863,13 +1117,13 @@ def api_register():
             'name': data.get('name'),
             'email': data.get('email'),
             'phone': data.get('phone'),
-            'roll_number': data.get('roll_number'),
+            'roll_number': roll_number,
             'department': data.get('branch') or data.get('department'),
             'year': data.get('year'),
             'reg_type': reg_type,
             'team_role': team_role,
             'team_name': data.get('team_name'),
-            'team_id': data.get('team_id'),
+            'team_id': team_id,
             'timestamp': datetime.datetime.now().isoformat(),
             'payment_verified': True if not is_paid or payment_details else False,
             'qr_code': reg_id

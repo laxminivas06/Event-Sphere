@@ -9,8 +9,10 @@ import datetime as _dt
 def create_app():
     app = Flask(__name__, template_folder='../templates', static_folder='../static')
     csrf = CSRFProtect(app)
-    app.secret_key = 'supersecretkeyucef'
+    # Use environment variable for secret key in production; fallback for development only
+    app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkeyucef-change-in-production')
     app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+    app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB max upload size
     app.register_blueprint(api, url_prefix='/api')
     app.register_blueprint(em, url_prefix='/em')
 

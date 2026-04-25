@@ -18,7 +18,7 @@
         </h1>
         <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap:wrap;">
             <span class="glass" style="padding: 0.5rem 1.2rem; border-radius:50px;"><i class="fas fa-users"
-                    style="color:var(--primary);margin-right:0.4rem;"></i>{{ club.bearers|length }} Officers</span>
+                    style="color:var(--primary);margin-right:0.4rem;"></i>{{ club.office_bearers|length }} Officers</span>
             <span class="glass" style="padding: 0.5rem 1.2rem; border-radius:50px;"><i class="fas fa-calendar-alt"
                     style="color:var(--primary);margin-right:0.4rem;"></i>{{ events|length }} Events</span>
             {% if club.gallery %}
@@ -66,9 +66,9 @@
             <section style="margin-bottom: 3rem;">
                 <h2 style="margin-bottom:1.2rem;"><i class="fas fa-users"
                         style="color:var(--primary);margin-right:0.5rem;"></i>Office Bearers</h2>
-                {% if club.bearers %}
+                {% if club.office_bearers %}
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1.2rem;">
-                    {% for bearer in club.bearers %}
+                    {% for bearer in club.office_bearers %}
                     <div class="glass" style="padding:1.5rem;border-radius:16px;text-align:center;">
                         {% if bearer.photo %}
                         <img src="/static/uploads/clubs/{{ club.id }}/office_bearers/{{ bearer.photo }}"
@@ -206,7 +206,7 @@
                 <ul style="list-style:none;padding:0;">
                     <li
                         style="display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0;border-bottom:1px solid var(--glass-border);">
-                        <i class="fas fa-users" style="color:var(--primary);"></i><span>{{ club.bearers|length }}
+                        <i class="fas fa-users" style="color:var(--primary);"></i><span>{{ club.office_bearers|length }}
                             Officers</span></li>
                     <li style="display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0;"><i
                             class="fas fa-calendar-check" style="color:var(--primary);"></i><span>{{ events|length }}

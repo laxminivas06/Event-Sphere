@@ -45,6 +45,10 @@ class DB:
         else:
             students.append(student)
         DB.save_json('students.json', students)
+        
+    @staticmethod
+    def save_students(students):
+        DB.save_json('students.json', students)
 
     # Admin Management
     @staticmethod

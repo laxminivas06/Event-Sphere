@@ -140,12 +140,74 @@
     </aside>
 
     <main class="main-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
             <h2>Institutional Master DB</h2>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <input type="text" id="studentSearch" placeholder="Search roll/name..." style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem 1rem; color: white;">
                 <button onclick="fetchStudents(1)" class="btn btn-outline" style="border-radius: 10px;"><i class="fas fa-search"></i></button>
+                <button class="btn btn-outline" onclick="document.getElementById('promotionModal').style.display='flex'" style="border-radius: 10px;"><i class="fas fa-graduation-cap"></i> Academic Promotion</button>
                 <button class="btn btn-primary" onclick="document.getElementById('studentCsvFile').click()"><i class="fas fa-upload"></i> Global Import</button>
+            </div>
+        </div>
+
+        <!-- Academic Promotion Modal -->
+        <div id="promotionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+            <div class="glass" style="width: 90%; max-width: 600px; padding: 2rem; border-radius: 24px;">
+                <h3 style="margin-top: 0;">Academic Year Promotion</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Configure the year promotion rules and enter any detained roll numbers.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <label>From Year (e.g. 1st)</label>
+                        <input type="text" id="promoFrom1" value="1st" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                    <div>
+                        <label>To Year (e.g. 2nd)</label>
+                        <input type="text" id="promoTo1" value="2nd" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <input type="text" id="promoFrom2" value="2nd" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                    <div>
+                        <input type="text" id="promoTo2" value="3rd" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <input type="text" id="promoFrom3" value="3rd" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                    <div>
+                        <input type="text" id="promoTo3" value="4th" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <input type="text" id="promoFrom4" value="4th" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                    <div>
+                        <input type="text" id="promoTo4" value="Alumni" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label>Detained / De-promoted Students (Roll Numbers)</label>
+                    <textarea id="detainedRolls" placeholder="e.g. 23N81A0501, 23N81A0502 (comma separated)" rows="3" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.5rem; color: white; resize: vertical;"></textarea>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem;">These students will NOT be promoted to the next year.</p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="deleteDetained" style="width: auto; margin: 0;">
+                        Delete detained students entirely from the database
+                    </label>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button class="btn btn-outline" onclick="document.getElementById('promotionModal').style.display='none'">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitPromotion()">Execute Promotion</button>
+                </div>
             </div>
         </div>
 
@@ -242,6 +304,47 @@
                 if(data.current_page < data.pages) pagHtml += `<button onclick="fetchStudents(${data.current_page+1})" class="btn btn-outline" style="padding:0.2rem 0.6rem;">Next</button>`;
             }
             pagination.innerHTML = pagHtml;
+        }
+    }
+
+    async function submitPromotion() {
+        const rules = {};
+        for (let i = 1; i <= 4; i++) {
+            const from = document.getElementById('promoFrom' + i).value.trim();
+            const to = document.getElementById('promoTo' + i).value.trim();
+            if (from && to) rules[from] = to;
+        }
+
+        const detainedInput = document.getElementById('detainedRolls').value;
+        const detainedRolls = detainedInput.split(',').map(r => r.trim().toUpperCase()).filter(r => r.length > 0);
+        const deleteDetained = document.getElementById('deleteDetained').checked;
+
+        if (!confirm('Are you sure you want to execute this promotion? This will update the entire master database.')) return;
+
+        try {
+            const res = await fetch('/api/students/promote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    promotion_rules: rules,
+                    detained_rolls: detainedRolls,
+                    delete_detained: deleteDetained
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                alert('Success: ' + result.message);
+                document.getElementById('promotionModal').style.display = 'none';
+                fetchStudents(1);
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (err) {
+            alert('Failed to execute promotion.');
         }
     }
 

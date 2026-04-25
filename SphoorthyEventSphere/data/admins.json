@@ -12,5 +12,12 @@
         "password": "event123",
         "phone": "",
         "role": "event_manager"
+    },
+    {
+        "name": "Sharath V",
+        "email": "creator@gmail.com",
+        "password": "12345",
+        "phone": "",
+        "role": "club_admin"
     }
 ]

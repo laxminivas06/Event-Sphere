@@ -1,0 +1,22 @@
+{
+    "id": "creator_club",
+    "name": "Creator Club",
+    "features": {
+        "event_management": true,
+        "registration_system": true,
+        "payment_system": true,
+        "qr_attendance": true,
+        "club_profile": true,
+        "document_workflow": true
+    },
+    "admin_roll": "creator@gmail.com",
+    "about": "",
+    "mission": "",
+    "vision": "",
+    "mentor": {
+        "name": "",
+        "designation": ""
+    },
+    "office_bearers": [],
+    "gallery": []
+}

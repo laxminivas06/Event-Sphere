@@ -113,6 +113,17 @@ def enrich_events_with_stats(events):
                                    if t.get('payment_status') == 'pending_cash')
     return events
 
+def has_event_access(user, event_id):
+    """Check if the user has administrative access to a specific event."""
+    if not user: return False
+    role = user.get('role', '')
+    if role in ('event_manager', 'super_admin'): return True
+    
+    # Check if this event is in the list of events this user can admin
+    # admin_events(user) already handles club-specific and assigned event checks
+    allowed_events = [e['id'] for e in admin_events(user)]
+    return event_id in allowed_events
+
 # ─── QR / PDF Helpers ────────────────────────────────────────────────────────
 def _qr_buf(data):
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
@@ -608,20 +619,18 @@ def api_create_event():
 @em.route('/api/events/update/<event_id>', methods=['POST'])
 def api_update_event(event_id):
     user = session.get('user')
-    if not is_admin(user): return jsonify({'success': False}), 403
+    if not has_event_access(user, event_id):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
     events = get_events()
     ev = next((e for e in events if e['id'] == event_id), None)
-    if not ev: return jsonify({'success': False}), 404
-    
-    # Ensure event admin can only edit their assigned events
-    if user.get('role') == 'event_admin':
-        assigned = admin_events(user)
-        if not any(a['id'] == event_id for a in assigned):
-            return jsonify({'success': False}), 403
+    if not ev: return jsonify({'success': False, 'message': 'Event not found'}), 404
 
     data = request.form.to_dict()
-    for k, v in data.items():
-        ev[k] = v
+    allowed_fields = ['title', 'date', 'time', 'venue', 'organized_by', 'organized_by_id', 'event_category', 'event_type', 'ticket_price', 'max_capacity', 'assigned_admin']
+    for k in allowed_fields:
+        if k in data:
+            ev[k] = data[k]
     banner_f = request.files.get('banner')
     if banner_f and banner_f.filename:
         d = os.path.join('static', 'uploads', 'em', 'banners')
@@ -644,7 +653,8 @@ def api_update_event(event_id):
 @em.route('/api/events/cancel/<event_id>', methods=['POST'])
 def api_cancel_event(event_id):
     user = session.get('user')
-    if not is_manager(user): return jsonify({'success': False}), 403
+    if not has_event_access(user, event_id):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     events = get_events()
     for e in events:
         if e['id'] == event_id:
@@ -915,7 +925,7 @@ def api_download_ticket(ticket_id):
     t = next((t for t in tickets if t['ticket_id'] == ticket_id), None)
     if not t: return 'Ticket not found', 404
     identifier = user.get('roll_number') or user.get('email', '')
-    if t['user_id'] != identifier and not is_admin(user):
+    if t['user_id'] != identifier and not has_event_access(user, t['event_id']):
         return 'Unauthorized', 403
     event  = next((e for e in get_events() if e['id'] == t['event_id']), None)
     pdf_io = _generate_pdf_ticket(t, event)
@@ -925,10 +935,10 @@ def api_download_ticket(ticket_id):
 @em.route('/api/ticket/<ticket_id>/resend', methods=['POST'])
 def api_resend_ticket(ticket_id):
     user = session.get('user')
-    if not is_admin(user): return jsonify({'success': False}), 403
     tickets = get_tickets()
     t = next((t for t in tickets if t['ticket_id'] == ticket_id), None)
     if not t: return jsonify({'success': False, 'message': 'Ticket not found'}), 404
+    if not has_event_access(user, t['event_id']): return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     event = next((e for e in get_events() if e['id'] == t['event_id']), None)
     try:
         _send_ticket_email(t, event)
@@ -939,7 +949,8 @@ def api_resend_ticket(ticket_id):
 @em.route('/api/ticket/search')
 def api_ticket_search():
     user = session.get('user')
-    if not is_admin(user): return jsonify({'success': False}), 403
+    if not user or (not is_admin(user) and not is_club_admin(user)):
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     q         = request.args.get('q', '').lower()
     event_id  = request.args.get('event_id', '')
     tickets   = get_tickets()
@@ -957,7 +968,7 @@ def api_ticket_search():
 @em.route('/api/ticket/export/<event_id>')
 def api_export_tickets(event_id):
     user = session.get('user')
-    if not is_admin(user): return 'Unauthorized', 403
+    if not has_event_access(user, event_id): return 'Unauthorized', 403
     
     event = next((e for e in get_events() if e['id'] == event_id), None)
     if not event: return 'Event not found', 404
@@ -993,7 +1004,7 @@ def api_export_tickets(event_id):
 @em.route('/api/analytics/<event_id>')
 def api_analytics(event_id):
     user = session.get('user')
-    if not is_admin(user): return jsonify({'success': False}), 403
+    if not has_event_access(user, event_id): return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     tickets   = [t for t in get_tickets() if t['event_id'] == event_id
                  and t.get('payment_status') not in ('failed',)]
     total     = len(tickets)
@@ -1079,7 +1090,7 @@ def api_delete_em_admin(admin_id):
 @em.route('/api/bulk-email/<event_id>', methods=['POST'])
 def api_bulk_email(event_id):
     user = session.get('user')
-    if not is_admin(user):
+    if not has_event_access(user, event_id):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
 
     event = next((e for e in get_events() if e['id'] == event_id), None)
@@ -1142,7 +1153,7 @@ def api_bulk_email(event_id):
 def api_resend_all_passes(event_id):
     """Resend PDF event pass to every ticket holder for an event."""
     user = session.get('user')
-    if not is_admin(user):
+    if not has_event_access(user, event_id):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     event = next((e for e in get_events() if e['id'] == event_id), None)
     if not event:
@@ -2632,7 +2643,7 @@ def api_techfest_mark_attendance():
 @em.route('/api/event/<event_id>/update-setting', methods=['POST'])
 def api_event_update_setting(event_id):
     user = session.get('user')
-    if not is_admin(user) and not is_club_admin(user):
+    if not has_event_access(user, event_id):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
     data = request.json or {}
@@ -2652,25 +2663,28 @@ def api_event_update_setting(event_id):
 @em.route('/api/techfest/<tf_id>/update-setting', methods=['POST'])
 def api_techfest_update_setting(tf_id):
     user = session.get('user')
-    if not is_admin(user) and not is_club_admin(user):
+    if not has_event_access(user, tf_id):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
     data = request.json or {}
+    allowed_fields = ['allow_external', 'status', 'submission_portal_enabled', 'leaderboard_enabled', 'show_results']
     
     # Try finding in techfests.json first (special techfest config)
     techfests = DB.get_techfests()
     tf = next((t for t in techfests if t['id'] == tf_id), None)
     if tf:
-        for key, val in data.items():
-            tf[key] = val
+        for key in allowed_fields:
+            if key in data:
+                tf[key] = data[key]
         DB.save_techfests(techfests)
     
     # Also try finding in events.json (general event storage)
     events = get_events()
     event = next((e for e in events if e['id'] == tf_id), None)
     if event:
-        for key, val in data.items():
-            event[key] = val
+        for key in allowed_fields:
+            if key in data:
+                event[key] = data[key]
         save_events(events)
     
     if not tf and not event:

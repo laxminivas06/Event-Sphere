@@ -90,7 +90,7 @@
             <section style="margin-bottom: 3rem;">
                 <h2 style="margin-bottom:1.2rem;"><i class="fas fa-users-cog" style="color:var(--primary);margin-right:0.5rem;"></i>Administrative Personnel</h2>
                 <div class="grid-3" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                    {% for bearer in club.bearers %}
+                    {% for bearer in club.office_bearers %}
                     <div class="glass" style="padding: 1rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem;">
                         {% if bearer.photo %}
                         <img src="/static/uploads/clubs/{{ club.id }}/office_bearers/{{ bearer.photo }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">

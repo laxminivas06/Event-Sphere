@@ -450,23 +450,47 @@ function removeContribution(index) {
 
 function renderContributions() {
     const list = document.getElementById('contributionsList');
+    list.innerHTML = ''; // Clear previous content
+    
     if(contributions.length === 0) {
-        list.innerHTML = '<div class="empty-state"><p>No contributions or achievements added yet.</p></div>';
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+        emptyState.innerHTML = '<p>No contributions or achievements added yet.</p>';
+        list.appendChild(emptyState);
         return;
     }
     
-    list.innerHTML = contributions.map((c, i) => `
-        <div class="achievement-item">
-            <div class="achievement-icon"><i class="fas fa-medal"></i></div>
-            <div class="achievement-info">
-                <h4>${c.club_name}</h4>
-                <p>${c.position}</p>
-            </div>
-            <button class="remove-contrib" onclick="removeContribution(${i})">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `).join('');
+    contributions.forEach((c, i) => {
+        const item = document.createElement('div');
+        item.className = 'achievement-item';
+        
+        const icon = document.createElement('div');
+        icon.className = 'achievement-icon';
+        icon.innerHTML = '<i class="fas fa-medal"></i>';
+        
+        const info = document.createElement('div');
+        info.className = 'achievement-info';
+        
+        const h4 = document.createElement('h4');
+        h4.textContent = c.club_name;
+        
+        const p = document.createElement('p');
+        p.textContent = c.position;
+        
+        info.appendChild(h4);
+        info.appendChild(p);
+        
+        const btn = document.createElement('button');
+        btn.className = 'remove-contrib';
+        btn.innerHTML = '<i class="fas fa-times"></i>';
+        btn.onclick = () => removeContribution(i);
+        
+        item.appendChild(icon);
+        item.appendChild(info);
+        item.appendChild(btn);
+        
+        list.appendChild(item);
+    });
 }
 
 // Initial render

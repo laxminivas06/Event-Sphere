@@ -1,0 +1,21 @@
+[
+    {
+        "id": "4dec05e2-02c3-4e66-8c7f-1bb06baadb90",
+        "event_id": "0e024305-c517-4a6c-9581-da6de4965bb7",
+        "event_title": "Event 1",
+        "club_id": "creator_club",
+        "name": "Laxmi Nivas",
+        "email": "morishettylaxminivas@gmail.com",
+        "phone": "09059160424",
+        "roll_number": "23N81A62B0",
+        "department": "CSE",
+        "year": "1",
+        "reg_type": "individual",
+        "team_role": null,
+        "team_name": null,
+        "team_id": null,
+        "timestamp": "2026-04-24T13:29:36.638031",
+        "payment_verified": true,
+        "qr_code": "4dec05e2-02c3-4e66-8c7f-1bb06baadb90"
+    }
+]
