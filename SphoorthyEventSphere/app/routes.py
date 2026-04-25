@@ -22,8 +22,13 @@ from werkzeug.utils import secure_filename
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+def check_file_size(file, max_kb):
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    return size <= max_kb * 1024
 
 api = Blueprint('api', __name__)
 
@@ -168,9 +173,11 @@ def update_event_details():
     # Handle poster upload
     poster = request.files.get('poster')
     if poster and poster.filename:
+        if not check_file_size(poster, 50):
+            return jsonify({'success': False, 'message': 'Event poster must be under 50 KB'}), 400
         if allowed_file(poster.filename):
             from app.models import slugify
-            event_slug = slugify(event['title'])
+            event_slug = slugify(event.get('title', 'event'))
             upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'events', event_slug, 'posters')
             os.makedirs(upload_dir, exist_ok=True)
             
@@ -219,8 +226,24 @@ def create_event_permission():
         'report_approved': False,
         'event_status': 'approved' if is_trusted_club(club_id) else 'draft',
         'timestamp': datetime.datetime.now().isoformat(),
-        'collaborating_clubs': request.form.getlist('collaborating_clubs')
+        'collaborating_clubs': request.form.getlist('collaborating_clubs'),
+        'poster': None
     }
+    
+    # Handle poster upload for new event
+    poster = request.files.get('poster')
+    if poster and poster.filename:
+        if not check_file_size(poster, 50):
+            return jsonify({'success': False, 'message': 'Event poster must be under 50 KB'}), 400
+        if allowed_file(poster.filename):
+            from app.models import slugify
+            event_slug = slugify(new_event['title'])
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'events', event_slug, 'posters')
+            os.makedirs(upload_dir, exist_ok=True)
+            filename = secure_filename(poster.filename)
+            fn = f"poster_{uuid.uuid4().hex[:8]}_{filename}"
+            poster.save(os.path.join(upload_dir, fn))
+            new_event['poster'] = fn
     
     DB.save_event(club_id, new_event)
     return jsonify({'success': True, 'event_id': event_id})
@@ -281,14 +304,17 @@ def upload_report():
     event_id = request.form.get('event_id')
     report_file = request.files.get('report')
     
-    if not report_file: return jsonify({'success': False, 'message': 'No file uploaded'}), 400
-    
+    if not report_file: return jsonify({'success': False, 'message': 'No report file'}), 400
+    if not check_file_size(report_file, 1024):
+        return jsonify({'success': False, 'message': 'Report PDF must be under 1 MB'}), 400
+
+    club = DB.get_club_by_id(club_id)
+    if not club: return jsonify({'success': False, 'message': 'Club not found'}), 404
+
     events = DB.get_events(club_id)
     event = next((e for e in events if e['id'] == event_id), None)
     if not event: return jsonify({'success': False, 'message': 'Event not found'}), 404
-    
-    # Authorization check
-    club = DB.get_club_by_id(club_id)
+
     identifier = user.get('email') or user.get('roll_number')
     if user.get('role') != 'super_admin' and club.get('admin_roll') != identifier:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
@@ -489,9 +515,23 @@ def update_club():
     if 'mentor_name' in data: club['mentor']['name'] = data['mentor_name']
     if 'mentor_designation' in data: club['mentor']['designation'] = data['mentor_designation']
     
+    # Handle mentor photo upload
+    mentor_photo = request.files.get('mentor_photo')
+    if mentor_photo and mentor_photo.filename:
+        if not check_file_size(mentor_photo, 20):
+            return jsonify({'success': False, 'message': 'Mentor photo must be under 20 KB'}), 400
+        if allowed_file(mentor_photo.filename):
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'details')
+            os.makedirs(upload_dir, exist_ok=True)
+            fn = f"mentor_{uuid.uuid4().hex[:8]}_{secure_filename(mentor_photo.filename)}"
+            mentor_photo.save(os.path.join(upload_dir, fn))
+            club['mentor']['photo'] = fn
+
     # Handle logo upload
     logo = request.files.get('logo')
     if logo and logo.filename:
+        if not check_file_size(logo, 40):
+            return jsonify({'success': False, 'message': 'Club logo must be under 40 KB'}), 400
         if allowed_file(logo.filename):
             upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'details')
             os.makedirs(upload_dir, exist_ok=True)
@@ -502,6 +542,8 @@ def update_club():
     # Handle cover image upload
     cover = request.files.get('cover_image')
     if cover and cover.filename:
+        if not check_file_size(cover, 40):
+            return jsonify({'success': False, 'message': 'Club wallpaper must be under 40 KB'}), 400
         if allowed_file(cover.filename):
             upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'details')
             os.makedirs(upload_dir, exist_ok=True)
@@ -513,16 +555,22 @@ def update_club():
     remove_img = data.get('remove_gallery_image')
     if remove_img and 'gallery' in club:
         club['gallery'] = [img for img in club['gallery'] if img != remove_img]
-        # Optional: delete the file from disk here
+        # Optional: delete file
+        try:
+            p = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'gallery', remove_img)
+            if os.path.exists(p): os.remove(p)
+        except: pass
         
     # Handle new gallery images
-    new_images = request.files.getlist('gallery') # Changed from gallery_images to match template name="gallery"
+    new_images = request.files.getlist('gallery')
     if new_images:
         upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'gallery')
         os.makedirs(upload_dir, exist_ok=True)
         if 'gallery' not in club: club['gallery'] = []
         for img in new_images:
             if img and img.filename and allowed_file(img.filename):
+                if not check_file_size(img, 20):
+                    return jsonify({'success': False, 'message': f'Gallery image {img.filename} exceeds 20 KB'}), 400
                 fn = f"gallery_{uuid.uuid4().hex[:8]}_{secure_filename(img.filename)}"
                 img.save(os.path.join(upload_dir, fn))
                 club['gallery'].append(fn)
@@ -531,36 +579,33 @@ def update_club():
     bearer_names = request.form.getlist('bearer_names')
     bearer_roles = request.form.getlist('bearer_roles')
     bearer_phones = request.form.getlist('bearer_phones')
-    
-    # Note: bearer_photos handling is tricky with multiple files. 
-    # For now, we will maintain existing logic but fix the name mapping if possible.
-    # Actually, a better way is to check bearer_photos by index if they were provided.
+    bearer_photos_files = request.files.getlist('bearer_photos')
+    existing_photos = request.form.getlist('existing_bearer_photos')
     
     if bearer_names:
         bearers = []
         upload_dir = os.path.join(current_app.static_folder, 'uploads', 'clubs', club_id, 'bearers')
         os.makedirs(upload_dir, exist_ok=True)
         
-        # We need to know which bearer gets which photo. 
-        # HTML sends all bearer_photos in order of selection.
-        # This is still a bit fragile but let's try to match by presence of file.
-        
-        existing_bearers = club.get('office_bearers', [])
-        
         for i in range(len(bearer_names)):
-            photo_fn = None
-            # Check if a new photo was uploaded for this specific index
-            # This requires the frontend to send something that maps index to file.
-            # But with current simple list, it's hard. 
-            # We'll use the existing photo as default.
+            # Default to existing photo if available
+            photo_fn = existing_photos[i] if i < len(existing_photos) else None
             
-            current_photo = existing_bearers[i]['photo'] if i < len(existing_bearers) else None
+            # Check if a new photo was uploaded for this bearer
+            if i < len(bearer_photos_files):
+                f = bearer_photos_files[i]
+                if f and f.filename and allowed_file(f.filename):
+                    if not check_file_size(f, 20):
+                        return jsonify({'success': False, 'message': f'Bearer photo for {bearer_names[i]} exceeds 20 KB'}), 400
+                    fn = f"bearer_{uuid.uuid4().hex[:8]}_{secure_filename(f.filename)}"
+                    f.save(os.path.join(upload_dir, fn))
+                    photo_fn = fn
             
             bearers.append({
                 'name': bearer_names[i],
                 'role': bearer_roles[i],
                 'phone': bearer_phones[i],
-                'photo': current_photo
+                'photo': photo_fn
             })
         club['office_bearers'] = bearers
 
@@ -1170,6 +1215,8 @@ def update_student_profile():
                 
         photo = request.files.get('photo')
         if photo and photo.filename:
+            if not check_file_size(photo, 10):
+                return jsonify({'success': False, 'message': 'Profile photo must be under 10 KB'}), 400
             upload_dir = os.path.join(current_app.static_folder, 'uploads', 'students', roll)
             os.makedirs(upload_dir, exist_ok=True)
             filename = f"avatar_{uuid.uuid4().hex[:8]}_{photo.filename}"

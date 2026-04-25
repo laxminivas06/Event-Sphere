@@ -435,6 +435,12 @@ def em_ticket(ticket_id):
     event = next((e for e in get_events() if e['id'] == ticket['event_id']), None)
     return render_template('em_ticket.html', user=user, ticket=ticket, event=event)
 
+def check_file_size(file, max_kb):
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    return size <= max_kb * 1024
+
 @em.route('/dashboard')
 def em_dashboard():
     user = session.get('user')
@@ -577,9 +583,11 @@ def api_create_event():
     banner_fn = None
     banner_f  = request.files.get('banner')
     if banner_f and banner_f.filename:
-        d = os.path.join('static', 'uploads', 'em', 'banners')
+        if not check_file_size(banner_f, 50):
+            return jsonify({'success': False, 'message': 'Banner image must be under 50 KB'}), 400
+        d = os.path.join(current_app.static_folder, 'uploads', 'em', 'banners')
         os.makedirs(d, exist_ok=True)
-        banner_fn = f"banner_{uuid.uuid4().hex[:8]}_{banner_f.filename}"
+        banner_fn = f"banner_{uuid.uuid4().hex[:8]}_{secure_filename(banner_f.filename)}"
         banner_f.save(os.path.join(d, banner_fn))
 
     price = 0
@@ -633,9 +641,11 @@ def api_update_event(event_id):
             ev[k] = data[k]
     banner_f = request.files.get('banner')
     if banner_f and banner_f.filename:
-        d = os.path.join('static', 'uploads', 'em', 'banners')
+        if not check_file_size(banner_f, 50):
+            return jsonify({'success': False, 'message': 'Banner image must be under 50 KB'}), 400
+        d = os.path.join(current_app.static_folder, 'uploads', 'em', 'banners')
         os.makedirs(d, exist_ok=True)
-        fn = f"banner_{uuid.uuid4().hex[:8]}_{banner_f.filename}"
+        fn = f"banner_{uuid.uuid4().hex[:8]}_{secure_filename(banner_f.filename)}"
         banner_f.save(os.path.join(d, fn))
         ev['banner'] = fn
     if 'ticket_price' in ev:

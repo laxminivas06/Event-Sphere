@@ -19,5 +19,12 @@
         "password": "12345",
         "phone": "",
         "role": "club_admin"
+    },
+    {
+        "name": "Circuit",
+        "email": "raghava@gmail.com",
+        "password": "1234",
+        "phone": "",
+        "role": "club_admin"
     }
 ]

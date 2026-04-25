@@ -366,7 +366,7 @@
             <button onclick="toggleModal('createEventModal', false)"
                 style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
-        <form id="createEventForm">
+        <form id="createEventForm" enctype="multipart/form-data">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem;">
                 <div class="form-group">
                     <label
@@ -489,7 +489,7 @@
                 style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
 
-        <form id="editEventForm">
+        <form id="editEventForm" enctype="multipart/form-data">
             <input type="hidden" name="club_id" value="{{ club.id }}">
             <input type="hidden" name="event_id" id="editEventId">
 
@@ -701,6 +701,13 @@
 
     document.getElementById('editEventForm').onsubmit = async (e) => {
         e.preventDefault();
+        
+        const poster = e.target.querySelector('input[name="poster"]').files[0];
+        if (poster && poster.size > 50 * 1024) {
+            alert('Event poster exceeds 50 KB limit.');
+            return;
+        }
+
         const formData = new FormData(e.target);
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -757,13 +764,20 @@
 
     document.getElementById('reportUploadForm').onsubmit = async (ev) => {
         ev.preventDefault();
+        
+        const reportFile = document.getElementById('reportFile').files[0];
+        if (reportFile && reportFile.size > 1024 * 1024) {
+            alert('Report PDF exceeds 1 MB limit.');
+            return;
+        }
+
         const btn = ev.target.querySelector('button[type="submit"]');
         btn.disabled = true; btn.innerText = 'Submitting...';
 
         const formData = new FormData();
         formData.append('club_id', '{{ club.id }}');
         formData.append('event_id', document.getElementById('reportEventId').value);
-        formData.append('report', document.getElementById('reportFile').files[0]);
+        formData.append('report', reportFile);
 
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
         const res = await fetch('/api/events/upload_report', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: formData });
@@ -795,6 +809,13 @@
 
     document.getElementById('createEventForm').onsubmit = async (ev) => {
         ev.preventDefault();
+        
+        const poster = ev.target.querySelector('input[name="poster"]').files[0];
+        if (poster && poster.size > 50 * 1024) {
+            alert('Event poster exceeds 50 KB limit.');
+            return;
+        }
+
         const btn = ev.target.querySelector('button[type="submit"]');
         btn.disabled = true; btn.innerText = 'Initializing Event...';
 

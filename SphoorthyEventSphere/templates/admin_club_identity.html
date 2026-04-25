@@ -187,6 +187,32 @@
                         </div>
                     </div>
                 </div>
+
+                <div style="margin-top: 3rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem;">
+                    <h4 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-chalkboard-teacher" style="color: var(--primary);"></i> Mentor Profile</h4>
+                    <div style="display: flex; gap: 2rem; align-items: center; background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 20px;">
+                        <div style="width: 100px; height: 100px; border-radius: 14px; overflow: hidden; border: 2px solid var(--primary); background: #000; flex-shrink: 0;">
+                            <img id="mentorPreview" src="{% if club.mentor.photo %}/static/uploads/clubs/{{ club.id }}/details/{{ club.mentor.photo }}{% else %}https://ui-avatars.com/api/?name={{ club.mentor.name|urlencode }}&background=6366f1&color=fff{% endif %}"
+                                style="width:100%; height:100%; object-fit:cover;">
+                        </div>
+                        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="display:block; margin-bottom:0.5rem; font-size:0.8rem; color:var(--text-muted);">Mentor Name</label>
+                                <input type="text" name="mentor_name" value="{{ club.mentor.name }}" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:0.6rem; color:#fff;">
+                            </div>
+                            <div>
+                                <label style="display:block; margin-bottom:0.5rem; font-size:0.8rem; color:var(--text-muted);">Designation</label>
+                                <input type="text" name="mentor_designation" value="{{ club.mentor.designation }}" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:0.6rem; color:#fff;">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label class="btn btn-outline" style="cursor: pointer; padding: 0.5rem 1rem; font-size: 0.8rem; display: inline-block;">
+                                    <i class="fas fa-camera"></i> Change Mentor Photo
+                                    <input type="file" name="mentor_photo" style="display:none;" onchange="previewImage(this, 'mentorPreview')">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Office Bearers Section -->
@@ -373,6 +399,41 @@
 
     document.getElementById('profileForm').onsubmit = async (ev) => {
         ev.preventDefault();
+        
+        const validateFile = (file, maxKb, label) => {
+            if (file && file.size > maxKb * 1024) {
+                alert(`${label} exceeds the ${maxKb} KB limit.`);
+                return false;
+            }
+            return true;
+        };
+
+        const form = ev.target;
+        
+        // Validate Logo (40KB)
+        const logo = form.querySelector('input[name="logo"]').files[0];
+        if (!validateFile(logo, 40, 'Club Logo')) return;
+
+        // Validate Cover Image (40KB)
+        const cover = form.querySelector('input[name="cover_image"]').files[0];
+        if (!validateFile(cover, 40, 'Cover Image')) return;
+
+        // Validate Mentor Photo (20KB)
+        const mentorPhoto = form.querySelector('input[name="mentor_photo"]').files[0];
+        if (!validateFile(mentorPhoto, 20, 'Mentor Photo')) return;
+
+        // Validate Gallery (20KB each)
+        const galleryFiles = form.querySelector('input[name="gallery"]').files;
+        for (let file of galleryFiles) {
+            if (!validateFile(file, 20, `Gallery image ${file.name}`)) return;
+        }
+
+        // Validate Bearer Photos (20KB each)
+        const bearerPhotos = form.querySelectorAll('input[name="bearer_photos"]');
+        for (let input of bearerPhotos) {
+            if (input.files[0] && !validateFile(input.files[0], 20, 'Office Bearer photo')) return;
+        }
+
         const btn = ev.target.querySelector('button[type="submit"]');
         btn.disabled = true; btn.innerText = 'Saving...';
 
@@ -387,7 +448,7 @@
             alert('Club settings updated successfully!');
             setTimeout(() => location.reload(), 1000);
         } else {
-            alert('Update failed');
+            alert(data.message || 'Update failed');
             btn.disabled = false; btn.innerText = 'Save Profile Updates';
         }
     };
@@ -446,6 +507,7 @@
                     <input type="text" name="bearer_names" placeholder="Name" required style="font-weight:600;">
                     <input type="text" name="bearer_roles" placeholder="Role" required>
                     <input type="text" name="bearer_phones" placeholder="Phone" required>
+                    <input type="hidden" name="existing_bearer_photos" value="">
                 </div>
             </div>
         `;

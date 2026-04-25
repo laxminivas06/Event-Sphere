@@ -1,0 +1,21 @@
+[
+    {
+        "id": "c6f4ad66-d588-4ce6-916b-e5d58c8223f2",
+        "event_id": "3977dd1b-59d3-487f-ae6c-7b95bf66d249",
+        "event_title": "rob war",
+        "club_id": "robotic",
+        "name": "Laxmi Nivas",
+        "email": "morishettylaxminivas@gmail.com",
+        "phone": "09059160424",
+        "roll_number": "23N81A62B0",
+        "department": "CSE",
+        "year": "1",
+        "reg_type": "individual",
+        "team_role": null,
+        "team_name": null,
+        "team_id": null,
+        "timestamp": "2026-04-25T14:37:05.344873",
+        "payment_verified": true,
+        "qr_code": "c6f4ad66-d588-4ce6-916b-e5d58c8223f2"
+    }
+]
